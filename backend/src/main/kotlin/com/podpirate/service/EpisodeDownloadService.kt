@@ -6,7 +6,6 @@ import com.podpirate.repository.EpisodeRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.io.FileOutputStream
 import java.net.URI
 import java.nio.file.Files
@@ -31,7 +30,6 @@ class EpisodeDownloadService(
         }
     }
 
-    @Transactional
     fun download(episodeId: Long) {
         val episode = episodeRepository.findById(episodeId).orElseThrow()
 
@@ -59,7 +57,7 @@ class EpisodeDownloadService(
 
         log.info("Downloaded episode ${episode.id}: ${episode.title}")
 
-        // Trigger transcription
+        // Trigger transcription (save above must be committed before the async thread reads it)
         transcriptionService.transcribeAsync(episode.id)
     }
 
