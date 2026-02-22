@@ -32,6 +32,7 @@ class TranscriptionService(
 
     @Async("aiExecutor")
     fun transcribeAsync(episodeId: Long) {
+        log.info("AI thread starting transcription for episode $episodeId")
         try {
             transcribe(episodeId)
         } catch (e: Exception) {
