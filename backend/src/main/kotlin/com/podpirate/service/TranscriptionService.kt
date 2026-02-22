@@ -44,7 +44,12 @@ class TranscriptionService(
     @Transactional
     fun transcribe(episodeId: Long) {
         val episode = episodeRepository.findById(episodeId).orElseThrow()
-        val audioPath = episode.localAudioPath ?: throw IllegalStateException("No local audio file")
+        val audioPath = episode.localAudioPath
+        if (audioPath == null || !java.nio.file.Path.of(audioPath).toFile().exists()) {
+            log.warn("Episode $episodeId has no audio file, resetting to PENDING for re-download")
+            episodeRepository.save(episode.copy(status = EpisodeStatus.PENDING, localAudioPath = null))
+            return
+        }
 
         episodeRepository.save(episode.copy(status = EpisodeStatus.TRANSCRIBING))
 
