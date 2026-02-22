@@ -84,9 +84,10 @@ class AudioProcessingService(
         val fullFilter = filterParts.joinToString(";") + ";" + concatFilter
 
         val command = listOf(
-            "ffmpeg", "-y", "-i", inputPath,
+            "ffmpeg", "-y", "-threads", "2", "-i", inputPath,
             "-filter_complex", fullFilter,
             "-map", "[out]",
+            "-threads", "2",
             outputPath
         )
 
