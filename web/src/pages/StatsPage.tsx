@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, Episode, StatsResponse } from '../api/client';
+import { api, Episode, StatsResponse, TranscriptionSegment } from '../api/client';
 
 const STATUS_ORDER = ['PENDING', 'DOWNLOADING', 'DOWNLOADED', 'TRANSCRIBING', 'DETECTING_ADS', 'PROCESSING', 'READY', 'ERROR'];
 const STATUS_COLORS: Record<string, string> = {
@@ -89,6 +89,35 @@ function EpisodeCard({ label, ep }: { label: string; ep: { id: number; title: st
       {ep.durationSeconds != null && (
         <div className="text-sm text-purple-400 mt-1">{formatDuration(ep.durationSeconds)}</div>
       )}
+    </div>
+  );
+}
+
+function LiveTranscription({ episodeId }: { episodeId: number }) {
+  const [segments, setSegments] = useState<TranscriptionSegment[]>([]);
+
+  useEffect(() => {
+    const fetchTranscription = () => {
+      api.getTranscription(episodeId)
+        .then(t => {
+          try { setSegments(JSON.parse(t.segments)); } catch { setSegments([]); }
+        })
+        .catch(() => {});
+    };
+    fetchTranscription();
+    const interval = setInterval(fetchTranscription, 5000);
+    return () => clearInterval(interval);
+  }, [episodeId]);
+
+  if (segments.length === 0) return null;
+
+  const lastSegments = segments.slice(-3);
+  return (
+    <div className="mt-1.5 pl-1">
+      <div className="text-xs text-amber-500/70">{segments.length} segments transcribed</div>
+      <div className="text-xs text-gray-500 italic truncate">
+        ...{lastSegments.map(s => s.text).join(' ')}
+      </div>
     </div>
   );
 }
@@ -185,22 +214,24 @@ export default function StatsPage() {
           <h2 className="text-lg font-semibold mb-3">Active Pipeline</h2>
           <div className="space-y-2">
             {activeEpisodes.map(ep => (
-              <Link
-                key={ep.id}
-                to={`/episodes/${ep.id}`}
-                className="flex items-center justify-between gap-3 bg-gray-800 rounded-lg p-3 border border-gray-700 hover:bg-gray-750 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{ep.title}</div>
-                  {ep.podcast && <div className="text-xs text-gray-500">{ep.podcast.title}</div>}
-                </div>
-                <span
-                  className="text-xs font-medium px-2 py-0.5 rounded-full shrink-0"
-                  style={{ backgroundColor: STATUS_COLORS[ep.status] + '33', color: STATUS_COLORS[ep.status] }}
+              <div key={ep.id} className="bg-gray-800 rounded-lg border border-gray-700">
+                <Link
+                  to={`/episodes/${ep.id}`}
+                  className="flex items-center justify-between gap-3 p-3 hover:bg-gray-750 transition-colors rounded-lg"
                 >
-                  {ep.status}
-                </span>
-              </Link>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{ep.title}</div>
+                    {ep.podcast && <div className="text-xs text-gray-500">{ep.podcast.title}</div>}
+                  </div>
+                  <span
+                    className="text-xs font-medium px-2 py-0.5 rounded-full shrink-0"
+                    style={{ backgroundColor: STATUS_COLORS[ep.status] + '33', color: STATUS_COLORS[ep.status] }}
+                  >
+                    {ep.status}
+                  </span>
+                </Link>
+                {ep.status === 'TRANSCRIBING' && <div className="px-3 pb-3"><LiveTranscription episodeId={ep.id} /></div>}
+              </div>
             ))}
           </div>
         </div>

@@ -1,6 +1,8 @@
+import json
 import os
 import tempfile
 from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import StreamingResponse
 from faster_whisper import WhisperModel
 
 app = FastAPI(title="PodPirate Whisper Service")
@@ -49,3 +51,31 @@ async def transcribe(file: UploadFile = File(...)):
         }
     finally:
         os.unlink(tmp_path)
+
+
+@app.post("/transcribe-stream")
+async def transcribe_stream(file: UploadFile = File(...)):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".audio") as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    def generate():
+        try:
+            segments_iter, info = model.transcribe(tmp_path, beam_size=5)
+            for segment in segments_iter:
+                yield json.dumps({
+                    "start": round(segment.start, 2),
+                    "end": round(segment.end, 2),
+                    "text": segment.text.strip(),
+                }) + "\n"
+            yield json.dumps({
+                "done": True,
+                "language": info.language,
+                "language_probability": round(info.language_probability, 2),
+                "duration": round(info.duration, 2),
+            }) + "\n"
+        finally:
+            os.unlink(tmp_path)
+
+    return StreamingResponse(generate(), media_type="application/x-ndjson")

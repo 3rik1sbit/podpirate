@@ -13,7 +13,6 @@ import org.springframework.http.MediaType
 import org.springframework.http.client.MultipartBodyBuilder
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import java.nio.file.Path
@@ -42,7 +41,6 @@ class TranscriptionService(
         }
     }
 
-    @Transactional
     fun transcribe(episodeId: Long) {
         val episode = episodeRepository.findById(episodeId).orElseThrow()
         val audioPath = episode.localAudioPath
@@ -57,25 +55,55 @@ class TranscriptionService(
         val bodyBuilder = MultipartBodyBuilder()
         bodyBuilder.part("file", FileSystemResource(Path.of(audioPath).toFile()))
 
-        val response = webClient.post()
-            .uri("${properties.whisperUrl}/transcribe")
+        // Create initial empty transcription so frontend can poll it
+        val transcription = transcriptionRepository.findByEpisodeId(episodeId)
+            .map { it.copy(segments = "[]") }
+            .orElse(Transcription(episode = episode, segments = "[]"))
+        transcriptionRepository.save(transcription)
+
+        val segments = mutableListOf<Map<String, Any>>()
+        var duration: Double? = null
+
+        val stream = webClient.post()
+            .uri("${properties.whisperUrl}/transcribe-stream")
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(BodyInserters.fromMultipartData(bodyBuilder.build()))
             .retrieve()
-            .bodyToMono(JsonNode::class.java)
-            .block() ?: throw RuntimeException("Empty response from whisper service")
+            .bodyToFlux(String::class.java)
+            .toStream()
 
-        val segments = response["segments"] ?: throw RuntimeException("No segments in response")
+        for (line in stream) {
+            if (line.isBlank()) continue
+            val node = objectMapper.readTree(line)
+            if (node.has("done") && node["done"].asBoolean()) {
+                duration = node["duration"]?.asDouble()
+            } else {
+                segments.add(mapOf(
+                    "start" to node["start"].asDouble(),
+                    "end" to node["end"].asDouble(),
+                    "text" to node["text"].asText()
+                ))
+                if (segments.size % 10 == 0) {
+                    val segmentsJson = objectMapper.writeValueAsString(segments)
+                    val current = transcriptionRepository.findByEpisodeId(episodeId).orElseThrow()
+                    transcriptionRepository.save(current.copy(segments = segmentsJson))
+                }
+            }
+        }
+
+        // Final save of all segments
         val segmentsJson = objectMapper.writeValueAsString(segments)
+        val current = transcriptionRepository.findByEpisodeId(episodeId).orElseThrow()
+        transcriptionRepository.save(current.copy(segments = segmentsJson))
 
-        val transcription = transcriptionRepository.findByEpisodeId(episodeId)
-            .map { it.copy(segments = segmentsJson) }
-            .orElse(Transcription(episode = episode, segments = segmentsJson))
+        val updatedEpisode = episodeRepository.findById(episodeId).orElseThrow()
+        if (duration != null && updatedEpisode.duration == null) {
+            episodeRepository.save(updatedEpisode.copy(status = EpisodeStatus.DETECTING_ADS, duration = duration.toLong()))
+        } else {
+            episodeRepository.save(updatedEpisode.copy(status = EpisodeStatus.DETECTING_ADS))
+        }
 
-        transcriptionRepository.save(transcription)
-        episodeRepository.save(episode.copy(status = EpisodeStatus.DETECTING_ADS))
-
-        log.info("Transcribed episode ${episode.id}: ${episode.title}")
+        log.info("Transcribed episode ${episode.id}: ${episode.title} (${segments.size} segments)")
 
         // Trigger ad detection
         adDetectionService.detectAdsAsync(episodeId)
