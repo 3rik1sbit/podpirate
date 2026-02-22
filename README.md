@@ -25,7 +25,7 @@ The backend communicates with the AI services over HTTP. No shared volumes are n
 3. Verify services are running:
    ```sh
    curl http://localhost:8000/health
-   curl http://localhost:11434/api/tags
+   curl http://localhost:11435/api/tags
    ```
 
 4. Pull the Ollama model:
@@ -52,5 +52,5 @@ The backend communicates with the AI services over HTTP. No shared volumes are n
 ## Troubleshooting
 
 - **Whisper won't start on worker** — Verify GPU access: `docker run --rm --gpus all nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04 nvidia-smi`
-- **Backend can't reach worker** — Check that the firewall allows ports `8000` and `11434` from the server machine.
+- **Backend can't reach worker** — Check that the firewall allows ports `8000` and `11435` from the server machine.
 - **No Ollama model** — The model must be pulled manually after first deploy (see step 4 above).
