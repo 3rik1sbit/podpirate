@@ -35,7 +35,7 @@ async def transcribe(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
-        segments_iter, info = model.transcribe(tmp_path, beam_size=3, batch_size=batch_size)
+        segments_iter, info = model.transcribe(tmp_path, beam_size=5, batch_size=batch_size)
 
         segments = []
         for segment in segments_iter:
@@ -64,7 +64,7 @@ async def transcribe_stream(file: UploadFile = File(...)):
 
     def generate():
         try:
-            segments_iter, info = model.transcribe(tmp_path, beam_size=3, batch_size=batch_size)
+            segments_iter, info = model.transcribe(tmp_path, beam_size=5, batch_size=batch_size)
             for segment in segments_iter:
                 yield json.dumps({
                     "start": round(segment.start, 2),

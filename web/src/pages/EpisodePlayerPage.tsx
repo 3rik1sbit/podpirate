@@ -40,6 +40,11 @@ export default function EpisodePlayerPage() {
     await api.reprocessEpisode(parseInt(id));
   }
 
+  async function handleRedetectPodcast() {
+    if (!episode?.podcast?.id) return;
+    await api.redetectPodcastAds(episode.podcast.id);
+  }
+
   function handleSeek(time: number) {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
@@ -163,6 +168,7 @@ export default function EpisodePlayerPage() {
             adSegments={adSegments}
             onSave={handleSaveAdSegments}
             onReprocess={handleReprocess}
+            onRedetectPodcast={episode?.podcast?.id ? handleRedetectPodcast : undefined}
           />
         </div>
       </div>
@@ -174,10 +180,12 @@ function AdSegmentEditor({
   adSegments,
   onSave,
   onReprocess,
+  onRedetectPodcast,
 }: {
   adSegments: AdSegment[];
   onSave: (segments: AdSegment[]) => void;
   onReprocess: () => void;
+  onRedetectPodcast?: () => Promise<void>;
 }) {
   const [editing, setEditing] = useState<AdSegment[]>([]);
   const [dirty, setDirty] = useState(false);
@@ -207,6 +215,12 @@ function AdSegmentEditor({
   function handleSave() {
     onSave(editing);
     setDirty(false);
+  }
+
+  async function handleSaveAndRedetect() {
+    onSave(editing);
+    setDirty(false);
+    if (onRedetectPodcast) await onRedetectPodcast();
   }
 
   return (
@@ -254,6 +268,14 @@ function AdSegmentEditor({
             >
               Save & Reprocess
             </button>
+            {onRedetectPodcast && (
+              <button
+                onClick={handleSaveAndRedetect}
+                className="px-3 py-1.5 bg-blue-600 rounded text-sm hover:bg-blue-700"
+              >
+                Save & Re-detect Podcast
+              </button>
+            )}
           </>
         )}
       </div>

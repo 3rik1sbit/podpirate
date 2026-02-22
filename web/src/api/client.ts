@@ -141,6 +141,12 @@ export const api = {
     });
   },
 
+  redetectPodcastAds(podcastId: number) {
+    return fetchJson<{ message: string }>(`${API_BASE}/podcasts/${podcastId}/redetect-ads`, {
+      method: 'POST',
+    });
+  },
+
   audioUrl(episodeId: number, processed = true) {
     return `${API_BASE}/episodes/${episodeId}/audio?processed=${processed}`;
   },
