@@ -1,7 +1,10 @@
 package com.podpirate.controller
 
 import com.podpirate.model.Episode
+import com.podpirate.model.EpisodeStatus
 import com.podpirate.repository.EpisodeRepository
+import com.podpirate.service.EpisodeDownloadService
+import com.podpirate.service.TranscriptionService
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
 import org.springframework.data.domain.Page
@@ -17,6 +20,8 @@ import java.nio.file.Path
 @CrossOrigin(origins = ["*"])
 class EpisodeController(
     private val episodeRepository: EpisodeRepository,
+    private val episodeDownloadService: EpisodeDownloadService,
+    private val transcriptionService: TranscriptionService,
 ) {
 
     @GetMapping("/feed")
@@ -37,6 +42,23 @@ class EpisodeController(
         return episodeRepository.findById(id)
             .map { ResponseEntity.ok(it) }
             .orElse(ResponseEntity.notFound().build())
+    }
+
+    @PostMapping("/episodes/{id}/prioritize")
+    fun prioritizeEpisode(@PathVariable id: Long): ResponseEntity<Episode> {
+        val episode = episodeRepository.findById(id).orElse(null)
+            ?: return ResponseEntity.notFound().build()
+
+        val updated = episodeRepository.save(episode.copy(priority = 1000))
+
+        // Immediately submit to executor if in a queueable state
+        when (updated.status) {
+            EpisodeStatus.PENDING -> episodeDownloadService.downloadAsync(updated.id)
+            EpisodeStatus.DOWNLOADED -> transcriptionService.transcribeAsync(updated.id)
+            else -> {}
+        }
+
+        return ResponseEntity.ok(updated)
     }
 
     @GetMapping("/episodes/{id}/audio")

@@ -39,9 +39,9 @@ class EpisodeRecoveryService(
             log.info("Reset ${downloading.size} downloading, ${transcribing.size} transcribing, ${detectingAds.size} detecting-ads episodes")
         }
 
-        // Now resume: download pending, transcribe downloaded
-        val pending = episodeRepository.findByStatus(EpisodeStatus.PENDING)
-        val downloaded = episodeRepository.findByStatus(EpisodeStatus.DOWNLOADED)
+        // Now resume: download pending, transcribe downloaded (ordered by priority then newest first)
+        val pending = episodeRepository.findByStatusOrdered(EpisodeStatus.PENDING)
+        val downloaded = episodeRepository.findByStatusOrdered(EpisodeStatus.DOWNLOADED)
 
         if (pending.isNotEmpty()) {
             log.info("Resuming downloads for ${pending.size} pending episodes")

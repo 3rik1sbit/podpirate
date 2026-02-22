@@ -13,6 +13,9 @@ interface EpisodeRepository : JpaRepository<Episode, Long> {
     fun findByGuid(guid: String): Episode?
     fun findByStatus(status: EpisodeStatus): List<Episode>
 
+    @Query("SELECT e FROM Episode e WHERE e.status = :status ORDER BY e.priority DESC, e.publishedAt DESC NULLS LAST")
+    fun findByStatusOrdered(status: EpisodeStatus): List<Episode>
+
     @Query("""
         SELECT e FROM Episode e
         WHERE e.podcast.id IN (SELECT s.podcast.id FROM Subscription s)

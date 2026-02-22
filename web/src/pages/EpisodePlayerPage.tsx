@@ -83,11 +83,29 @@ export default function EpisodePlayerPage() {
   return (
     <div>
       <h1 className="text-xl sm:text-2xl font-bold mb-2">{episode.title}</h1>
-      <p className="text-gray-400 mb-1 text-sm">
-        Status: <span className={`font-medium ${episode.status === 'READY' ? 'text-green-400' : 'text-yellow-400'}`}>
-          {episode.status}
-        </span>
-      </p>
+      <div className="flex items-center gap-3 mb-1">
+        <p className="text-gray-400 text-sm">
+          Status: <span className={`font-medium ${episode.status === 'READY' ? 'text-green-400' : 'text-yellow-400'}`}>
+            {episode.status}
+          </span>
+        </p>
+        {!['READY', 'ERROR'].includes(episode.status) && episode.priority < 1000 && (
+          <button
+            onClick={async () => {
+              if (!id) return;
+              await api.prioritizeEpisode(parseInt(id));
+              const updated = await api.getEpisode(parseInt(id));
+              setEpisode(updated);
+            }}
+            className="px-3 py-0.5 bg-yellow-600 hover:bg-yellow-700 rounded text-xs"
+          >
+            Prioritize
+          </button>
+        )}
+        {episode.priority >= 1000 && (
+          <span className="text-xs text-yellow-400">Prioritized</span>
+        )}
+      </div>
       {episode.description && (
         <p className="text-gray-300 text-sm mb-6 line-clamp-3">{episode.description}</p>
       )}

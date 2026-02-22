@@ -28,6 +28,7 @@ export interface Episode {
   localAudioPath: string | null;
   processedAudioPath: string | null;
   duration: number | null;
+  priority: number;
   status: string;
   podcast?: Podcast;
 }
@@ -126,6 +127,12 @@ export const api = {
 
   reprocessEpisode(episodeId: number) {
     return fetchJson<{ message: string }>(`${API_BASE}/episodes/${episodeId}/reprocess`, {
+      method: 'POST',
+    });
+  },
+
+  prioritizeEpisode(episodeId: number) {
+    return fetchJson<Episode>(`${API_BASE}/episodes/${episodeId}/prioritize`, {
       method: 'POST',
     });
   },

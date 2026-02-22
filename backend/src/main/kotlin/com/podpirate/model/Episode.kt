@@ -42,6 +42,8 @@ data class Episode(
     @Column(unique = true)
     val guid: String? = null,
 
+    val priority: Int = 0,
+
     @Enumerated(EnumType.STRING)
     val status: EpisodeStatus = EpisodeStatus.PENDING,
 

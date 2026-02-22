@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Episode } from '../api/client';
+import { api, Episode } from '../api/client';
 
 interface EpisodeListProps {
   episodes: Episode[];
+  onUpdate?: () => void;
 }
 
 function formatDate(dateStr: string | null): string {
@@ -30,7 +32,25 @@ const statusColors: Record<string, string> = {
   ERROR: 'text-red-400',
 };
 
-export default function EpisodeList({ episodes }: EpisodeListProps) {
+const canPrioritize = (status: string) =>
+  !['READY', 'ERROR'].includes(status);
+
+export default function EpisodeList({ episodes, onUpdate }: EpisodeListProps) {
+  const [prioritizing, setPrioritizing] = useState<number | null>(null);
+
+  async function handlePrioritize(e: React.MouseEvent, episodeId: number) {
+    e.preventDefault();
+    setPrioritizing(episodeId);
+    try {
+      await api.prioritizeEpisode(episodeId);
+      onUpdate?.();
+    } catch (err) {
+      console.error('Failed to prioritize', err);
+    } finally {
+      setPrioritizing(null);
+    }
+  }
+
   return (
     <div className="space-y-2">
       {episodes.map(ep => (
@@ -47,9 +67,23 @@ export default function EpisodeList({ episodes }: EpisodeListProps) {
                 {ep.duration && <span>{formatDuration(ep.duration)}</span>}
               </div>
             </div>
-            <span className={`text-xs font-medium ${statusColors[ep.status] ?? 'text-gray-400'}`}>
-              {ep.status}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {canPrioritize(ep.status) && ep.priority < 1000 && (
+                <button
+                  onClick={e => handlePrioritize(e, ep.id)}
+                  disabled={prioritizing === ep.id}
+                  className="px-2 py-0.5 bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 rounded text-xs"
+                >
+                  {prioritizing === ep.id ? '...' : 'Prioritize'}
+                </button>
+              )}
+              {ep.priority >= 1000 && (
+                <span className="text-xs text-yellow-400">Prioritized</span>
+              )}
+              <span className={`text-xs font-medium ${statusColors[ep.status] ?? 'text-gray-400'}`}>
+                {ep.status}
+              </span>
+            </div>
           </div>
         </Link>
       ))}
