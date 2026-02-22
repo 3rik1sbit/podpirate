@@ -11,7 +11,8 @@ function Nav() {
 
   return (
     <nav className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex items-center gap-4">
-      <span className="text-xl font-bold text-purple-400 mr-6">☠ PodPirate</span>
+      <img src="/podpirate/logo.svg" alt="PodPirate" className="w-8 h-8" />
+      <span className="text-xl font-bold text-purple-400 mr-6">PodPirate</span>
       <NavLink to="/" className={linkClass}>Feed</NavLink>
       <NavLink to="/search" className={linkClass}>Search</NavLink>
       <NavLink to="/subscriptions" className={linkClass}>Subscriptions</NavLink>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Crossed mic shafts -->
+    <path
+        android:pathData="M120,380L280,160"
+        android:strokeWidth="10"
+        android:strokeColor="#c084fc"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M392,380L232,160"
+        android:strokeWidth="10"
+        android:strokeColor="#c084fc"
+        android:strokeLineCap="round"/>
+
+    <!-- Skull -->
+    <path
+        android:pathData="M256,150 C200,150 161,195 161,255 C161,315 200,360 256,360 C312,360 351,315 351,255 C351,195 312,150 256,150Z"
+        android:fillColor="#e8dcc8"/>
+    <!-- Jaw -->
+    <path
+        android:pathData="M256,270 C220,270 191,290 191,310 C191,340 220,350 256,350 C292,350 321,340 321,310 C321,290 292,270 256,270Z"
+        android:fillColor="#e8dcc8"/>
+
+    <!-- Left eye -->
+    <path
+        android:pathData="M222,245m-28,0a28,32 0,1 1,56 0a28,32 0,1 1,-56 0"
+        android:fillColor="#1a1a2e"/>
+    <!-- Right eye -->
+    <path
+        android:pathData="M290,245m-28,0a28,32 0,1 1,56 0a28,32 0,1 1,-56 0"
+        android:fillColor="#1a1a2e"/>
+
+    <!-- Purple eye glow -->
+    <path
+        android:pathData="M222,248m-14,0a14,16 0,1 1,28 0a14,16 0,1 1,-28 0"
+        android:fillColor="#9333ea"
+        android:fillAlpha="0.8"/>
+    <path
+        android:pathData="M290,248m-14,0a14,16 0,1 1,28 0a14,16 0,1 1,-28 0"
+        android:fillColor="#9333ea"
+        android:fillAlpha="0.8"/>
+
+    <!-- Nose -->
+    <path
+        android:pathData="M248,280L256,295L264,280Z"
+        android:fillColor="#1a1a2e"/>
+
+    <!-- Teeth -->
+    <path android:pathData="M232,320h10v16h-10z" android:fillColor="#1a1a2e"/>
+    <path android:pathData="M245,320h10v16h-10z" android:fillColor="#1a1a2e"/>
+    <path android:pathData="M258,320h10v16h-10z" android:fillColor="#1a1a2e"/>
+    <path android:pathData="M271,320h10v16h-10z" android:fillColor="#1a1a2e"/>
+
+    <!-- Headband -->
+    <path
+        android:pathData="M148,240Q150,140 256,125Q362,140 364,240"
+        android:strokeWidth="14"
+        android:strokeColor="#9333ea"
+        android:strokeLineCap="round"/>
+
+    <!-- Left ear cup -->
+    <path android:pathData="M130,225h35v55h-35z" android:fillColor="#9333ea" android:pathData="M140,225a10,10 0,0 1,10 -10h15a10,10 0,0 1,10 10v35a10,10 0,0 1,-10 10h-15a10,10 0,0 1,-10 -10z"/>
+    <path android:pathData="M130,225 L165,225 L165,280 L130,280Z" android:fillColor="#9333ea"/>
+    <!-- Right ear cup -->
+    <path android:pathData="M347,225 L382,225 L382,280 L347,280Z" android:fillColor="#9333ea"/>
+</vector>
