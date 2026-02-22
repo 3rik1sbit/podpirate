@@ -14,22 +14,6 @@ services:
       timeout: 5s
       retries: 5
 
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    volumes:
-      - ollama_data:/root/.ollama
-
-  whisper-service:
-    build: ./whisper-service
-    restart: unless-stopped
-    environment:
-      WHISPER_MODEL: base
-      WHISPER_DEVICE: cpu
-      WHISPER_COMPUTE_TYPE: int8
-    volumes:
-      - audio_data:/data/audio
-
   backend:
     build: ./backend
     restart: unless-stopped
@@ -37,8 +21,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/podpirate
       SPRING_DATASOURCE_USERNAME: podpirate
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-podpirate}
-      PODPIRATE_WHISPER_URL: http://whisper-service:8000
-      PODPIRATE_OLLAMA_URL: http://ollama:11434
+      PODPIRATE_WHISPER_URL: http://${AI_WORKER_HOST}:8000
+      PODPIRATE_OLLAMA_URL: http://${AI_WORKER_HOST}:11434
       PODPIRATE_AUDIO_DIR: /data/audio
       PODPIRATE_PROCESSED_DIR: /data/processed
     volumes:
@@ -47,10 +31,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      whisper-service:
-        condition: service_started
-      ollama:
-        condition: service_started
 
   web:
     build: ./web
@@ -62,6 +42,5 @@ services:
 
 volumes:
   pgdata:
-  ollama_data:
   audio_data:
   processed_data:
