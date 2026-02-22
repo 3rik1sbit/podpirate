@@ -40,7 +40,7 @@ class AppConfig {
         val executor = ThreadPoolTaskExecutor()
         executor.corePoolSize = 4
         executor.maxPoolSize = 8
-        executor.queueCapacity = 1000
+        executor.queueCapacity = 10000
         executor.setThreadNamePrefix("download-")
         executor.setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())
         executor.initialize()
@@ -52,7 +52,7 @@ class AppConfig {
         val executor = ThreadPoolTaskExecutor()
         executor.corePoolSize = 2
         executor.maxPoolSize = 4
-        executor.queueCapacity = 1000
+        executor.queueCapacity = 10000
         executor.setThreadNamePrefix("ai-")
         executor.setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())
         executor.initialize()
