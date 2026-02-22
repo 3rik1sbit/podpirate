@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.gpu
     restart: unless-stopped
     environment:
-      WHISPER_MODEL: base
+      WHISPER_MODEL: large-v3
       WHISPER_DEVICE: cuda
       WHISPER_COMPUTE_TYPE: float16
     ports:
