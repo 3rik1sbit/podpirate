@@ -1,9 +1,12 @@
 package com.podpirate.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.MediaType
+import org.springframework.http.codec.json.Jackson2JsonDecoder
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.web.reactive.function.client.WebClient
 import java.util.concurrent.Executor
@@ -22,8 +25,13 @@ data class PodPirateProperties(
 class AppConfig {
 
     @Bean
-    fun webClient(): WebClient = WebClient.builder()
-        .codecs { it.defaultCodecs().maxInMemorySize(16 * 1024 * 1024) }
+    fun webClient(objectMapper: ObjectMapper): WebClient = WebClient.builder()
+        .codecs {
+            it.defaultCodecs().maxInMemorySize(16 * 1024 * 1024)
+            it.defaultCodecs().jackson2JsonDecoder(
+                Jackson2JsonDecoder(objectMapper, MediaType.APPLICATION_JSON, MediaType("text", "javascript"))
+            )
+        }
         .build()
 
     @Bean("taskExecutor")
