@@ -4,10 +4,14 @@ import com.podpirate.model.AdSegment
 import com.podpirate.model.AdSegmentSource
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
+import org.springframework.transaction.annotation.Transactional
 
 interface AdSegmentRepository : JpaRepository<AdSegment, Long> {
     fun findByEpisodeIdOrderByStartTime(episodeId: Long): List<AdSegment>
+    @Modifying
+    @Transactional
     fun deleteByEpisodeId(episodeId: Long)
     fun findByEpisodePodcastIdAndSource(podcastId: Long, source: AdSegmentSource): List<AdSegment>
 

@@ -12,8 +12,8 @@ import com.podpirate.repository.TranscriptionRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.Duration
 
 @Service
 class AdDetectionService(
@@ -39,7 +39,6 @@ class AdDetectionService(
         }
     }
 
-    @Transactional
     fun detectAds(episodeId: Long) {
         val episode = episodeRepository.findById(episodeId).orElseThrow()
         val transcription = transcriptionRepository.findByEpisodeId(episodeId)
@@ -81,14 +80,20 @@ $transcript"""
             .bodyValue(ollamaRequest)
             .retrieve()
             .bodyToMono(JsonNode::class.java)
-            .block()
+            .block(Duration.ofMinutes(5))
 
         val responseText = response?.get("response")?.asText() ?: "[]"
 
         // Parse ad segments from response
         val detectedAds = try {
             val parsed = objectMapper.readTree(responseText)
-            val adArray = if (parsed.isArray) parsed else parsed["ads"] ?: parsed.fields().next()?.value ?: objectMapper.createArrayNode()
+            val adArray = if (parsed.isArray) {
+                parsed
+            } else {
+                parsed["ads"]
+                    ?: parsed.fields().let { if (it.hasNext()) it.next().value else null }
+                    ?: objectMapper.createArrayNode()
+            }
             adArray.mapNotNull { node ->
                 val start = node["start"]?.asDouble() ?: return@mapNotNull null
                 val end = node["end"]?.asDouble() ?: return@mapNotNull null
