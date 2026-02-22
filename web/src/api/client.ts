@@ -105,6 +105,10 @@ export const api = {
     return fetchJson<Page<Episode>>(`${API_BASE}/podcasts/${podcastId}/episodes?page=${page}&size=${size}`);
   },
 
+  getActiveEpisodes() {
+    return fetchJson<Episode[]>(`${API_BASE}/episodes/active`);
+  },
+
   getEpisode(id: number) {
     return fetchJson<Episode>(`${API_BASE}/episodes/${id}`);
   },

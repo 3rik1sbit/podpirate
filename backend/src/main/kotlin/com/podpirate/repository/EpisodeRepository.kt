@@ -12,6 +12,7 @@ interface EpisodeRepository : JpaRepository<Episode, Long> {
     fun findByPodcastId(podcastId: Long): List<Episode>
     fun findByGuid(guid: String): Episode?
     fun findByStatus(status: EpisodeStatus): List<Episode>
+    fun findByStatusIn(statuses: List<EpisodeStatus>): List<Episode>
 
     @Query("SELECT e FROM Episode e WHERE e.status = :status ORDER BY e.priority DESC, e.publishedAt DESC NULLS LAST")
     fun findByStatusOrdered(status: EpisodeStatus): List<Episode>

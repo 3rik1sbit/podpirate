@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, StatsResponse } from '../api/client';
+import { Link } from 'react-router-dom';
+import { api, Episode, StatsResponse } from '../api/client';
 
 const STATUS_ORDER = ['PENDING', 'DOWNLOADING', 'DOWNLOADED', 'TRANSCRIBING', 'DETECTING_ADS', 'PROCESSING', 'READY', 'ERROR'];
 const STATUS_COLORS: Record<string, string> = {
@@ -94,6 +95,7 @@ function EpisodeCard({ label, ep }: { label: string; ep: { id: number; title: st
 
 export default function StatsPage() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [activeEpisodes, setActiveEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,10 +106,18 @@ export default function StatsPage() {
       .finally(() => setLoading(false));
   };
 
+  const fetchActive = () => {
+    api.getActiveEpisodes()
+      .then(setActiveEpisodes)
+      .catch(() => {});
+  };
+
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
+    fetchActive();
+    const statsInterval = setInterval(fetchStats, 30000);
+    const activeInterval = setInterval(fetchActive, 5000);
+    return () => { clearInterval(statsInterval); clearInterval(activeInterval); };
   }, []);
 
   if (loading) return <p className="text-gray-400">Loading stats...</p>;
@@ -168,6 +178,33 @@ export default function StatsPage() {
           })}
         </div>
       </div>
+
+      {/* Active Pipeline */}
+      {activeEpisodes.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-3">Active Pipeline</h2>
+          <div className="space-y-2">
+            {activeEpisodes.map(ep => (
+              <Link
+                key={ep.id}
+                to={`/episodes/${ep.id}`}
+                className="flex items-center justify-between gap-3 bg-gray-800 rounded-lg p-3 border border-gray-700 hover:bg-gray-750 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">{ep.title}</div>
+                  {ep.podcast && <div className="text-xs text-gray-500">{ep.podcast.title}</div>}
+                </div>
+                <span
+                  className="text-xs font-medium px-2 py-0.5 rounded-full shrink-0"
+                  style={{ backgroundColor: STATUS_COLORS[ep.status] + '33', color: STATUS_COLORS[ep.status] }}
+                >
+                  {ep.status}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ETA Card */}
       <div className="mb-8 bg-gray-800 rounded-lg p-4 border border-gray-700">

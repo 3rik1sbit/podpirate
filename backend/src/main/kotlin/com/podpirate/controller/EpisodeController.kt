@@ -37,6 +37,18 @@ class EpisodeController(
         return episodeRepository.findByPodcastIdOrderByPublishedAtDesc(podcastId, PageRequest.of(page, size))
     }
 
+    @GetMapping("/episodes/active")
+    fun getActiveEpisodes(): List<Episode> {
+        return episodeRepository.findByStatusIn(
+            listOf(
+                EpisodeStatus.DOWNLOADING,
+                EpisodeStatus.TRANSCRIBING,
+                EpisodeStatus.DETECTING_ADS,
+                EpisodeStatus.PROCESSING,
+            )
+        )
+    }
+
     @GetMapping("/episodes/{id}")
     fun getEpisode(@PathVariable id: Long): ResponseEntity<Episode> {
         return episodeRepository.findById(id)
