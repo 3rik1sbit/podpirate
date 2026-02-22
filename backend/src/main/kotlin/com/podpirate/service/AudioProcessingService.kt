@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
 @Service
 class AudioProcessingService(
@@ -48,7 +49,7 @@ class AudioProcessingService(
 
         if (adSegments.isEmpty()) {
             // No ads detected - just copy the file
-            Files.copy(Path.of(localPath), outputPath)
+            Files.copy(Path.of(localPath), outputPath, StandardCopyOption.REPLACE_EXISTING)
         } else {
             // Use FFmpeg to cut out ad segments
             removeAdSegments(localPath, adSegments, outputPath.toString())
