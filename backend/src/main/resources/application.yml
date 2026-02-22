@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/podpirate
+    username: podpirate
+    password: podpirate
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+
+podpirate:
+  audio-dir: /data/audio
+  processed-dir: /data/processed
+  whisper-url: http://whisper-service:8000
+  ollama-url: http://ollama:11434
+  ollama-model: llama3.2
+
+logging:
+  level:
+    com.podpirate: DEBUG

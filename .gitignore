@@ -1,0 +1,21 @@
+# Backend
+backend/build/
+backend/.gradle/
+backend/gradlew
+backend/gradlew.bat
+backend/gradle/
+
+# Web
+web/node_modules/
+web/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Data
+/data/
+
+# Secrets
+.env
