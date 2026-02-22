@@ -11,6 +11,7 @@ export default function EpisodePlayerPage() {
   const [adSegments, setAdSegments] = useState<AdSegment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [useProcessed, setUseProcessed] = useState(true);
+  const [editingAds, setEditingAds] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -43,6 +44,36 @@ export default function EpisodePlayerPage() {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
     }
+  }
+
+  async function handleToggleAd(start: number, end: number, isAd: boolean) {
+    if (!id) return;
+    let updated: AdSegment[];
+
+    if (isAd) {
+      // Add new MANUAL segment, merging with any overlapping ones
+      const newSeg: AdSegment = { startTime: start, endTime: end, source: 'MANUAL', confirmed: true };
+      const nonOverlapping = adSegments.filter(s => s.endTime < start || s.startTime > end);
+      const overlapping = adSegments.filter(s => s.endTime >= start && s.startTime <= end);
+      const mergedStart = Math.min(start, ...overlapping.map(s => s.startTime));
+      const mergedEnd = Math.max(end, ...overlapping.map(s => s.endTime));
+      updated = [...nonOverlapping, { ...newSeg, startTime: mergedStart, endTime: mergedEnd }]
+        .sort((a, b) => a.startTime - b.startTime);
+    } else {
+      // Remove/trim segments that overlap the given range
+      updated = adSegments.flatMap(seg => {
+        if (seg.startTime >= start && seg.endTime <= end) return []; // fully contained — remove
+        if (seg.endTime <= start || seg.startTime >= end) return [seg]; // no overlap — keep
+        const parts: AdSegment[] = [];
+        if (seg.startTime < start) parts.push({ ...seg, endTime: start });
+        if (seg.endTime > end) parts.push({ ...seg, startTime: end });
+        return parts;
+      });
+    }
+
+    setAdSegments(updated);
+    const saved = await api.updateAdSegments(parseInt(id), updated);
+    setAdSegments(saved);
   }
 
   if (!episode) return <p className="text-gray-400">Loading...</p>;
@@ -88,12 +119,24 @@ export default function EpisodePlayerPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h2 className="text-lg font-semibold mb-3">Transcript</h2>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="text-lg font-semibold">Transcript</h2>
+            <button
+              onClick={() => setEditingAds(e => !e)}
+              className={`px-3 py-1 rounded text-sm ${
+                editingAds ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+            >
+              {editingAds ? 'Done Editing' : 'Edit Ads'}
+            </button>
+          </div>
           <TranscriptionView
             segments={segments}
             adSegments={adSegments}
             currentTime={currentTime}
             onSeek={handleSeek}
+            editable={editingAds}
+            onToggleAd={handleToggleAd}
           />
         </div>
         <div>

@@ -50,6 +50,8 @@ class AdDetectionService(
         val segments = objectMapper.readTree(transcription.segments)
         val transcript = buildTranscriptText(segments)
 
+        val fewShotSection = buildFewShotExamples(episode.podcast.id, episodeId)
+
         val prompt = """Analyze this podcast transcript and identify advertisement segments.
 For each ad segment, provide the start and end timestamps in seconds.
 
@@ -58,7 +60,7 @@ Ads typically include:
 - Promo codes and discount offers
 - Product pitches unrelated to the podcast topic
 - Mid-roll ad reads
-
+$fewShotSection
 Return ONLY a JSON array of ad segments, no other text. Example format:
 [{"start": 120.5, "end": 180.3}, {"start": 450.0, "end": 510.2}]
 
@@ -110,6 +112,37 @@ $transcript"""
 
         // Trigger audio processing
         audioProcessingService.processAsync(episodeId)
+    }
+
+    private fun buildFewShotExamples(podcastId: Long, currentEpisodeId: Long): String {
+        val manualSegments = adSegmentRepository.findByEpisodePodcastIdAndSource(podcastId, AdSegmentSource.MANUAL)
+            .filter { it.episode.id != currentEpisodeId }
+
+        // Group by episode, take up to 3 episodes
+        val byEpisode = manualSegments.groupBy { it.episode.id }.entries.take(3)
+        if (byEpisode.isEmpty()) return ""
+
+        val examples = byEpisode.mapNotNull { (epId, adSegs) ->
+            val trans = transcriptionRepository.findByEpisodeId(epId).orElse(null) ?: return@mapNotNull null
+            val segments = objectMapper.readTree(trans.segments)
+
+            // Find transcript lines that overlap with manual ad segments
+            val adLines = segments.filter { seg ->
+                val start = seg["start"]?.asDouble() ?: 0.0
+                adSegs.any { ad -> start >= ad.startTime && start <= ad.endTime }
+            }.joinToString("\n") { seg ->
+                val start = seg["start"]?.asDouble() ?: 0.0
+                val end = seg["end"]?.asDouble() ?: 0.0
+                val text = seg["text"]?.asText() ?: ""
+                "[%.1f-%.1f] %s".format(start, end, text)
+            }
+
+            if (adLines.isBlank()) null
+            else "Example ad from this podcast:\n$adLines"
+        }
+
+        if (examples.isEmpty()) return ""
+        return "\nHere are examples of ads previously identified in this podcast:\n${examples.joinToString("\n\n")}\n"
     }
 
     private fun buildTranscriptText(segments: JsonNode): String {

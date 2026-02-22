@@ -6,6 +6,8 @@ interface TranscriptionViewProps {
   adSegments: AdSegment[];
   currentTime: number;
   onSeek?: (time: number) => void;
+  editable?: boolean;
+  onToggleAd?: (start: number, end: number, isAd: boolean) => void;
 }
 
 function isInAdSegment(time: number, adSegments: AdSegment[]): boolean {
@@ -18,7 +20,7 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function TranscriptionView({ segments, adSegments, currentTime, onSeek }: TranscriptionViewProps) {
+export default function TranscriptionView({ segments, adSegments, currentTime, onSeek, editable, onToggleAd }: TranscriptionViewProps) {
   const activeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,6 +29,14 @@ export default function TranscriptionView({ segments, adSegments, currentTime, o
 
   if (segments.length === 0) {
     return <p className="text-gray-500 text-sm">No transcription available</p>;
+  }
+
+  function handleClick(seg: TranscriptionSegment, isAd: boolean) {
+    if (editable && onToggleAd) {
+      onToggleAd(seg.start, seg.end, !isAd);
+    } else {
+      onSeek?.(seg.start);
+    }
   }
 
   return (
@@ -39,17 +49,22 @@ export default function TranscriptionView({ segments, adSegments, currentTime, o
           <div
             key={i}
             ref={isActive ? activeRef : undefined}
-            onClick={() => onSeek?.(seg.start)}
+            onClick={() => handleClick(seg, isAd)}
             className={`px-3 py-1.5 rounded cursor-pointer text-sm transition-colors ${
               isActive
                 ? 'bg-purple-600/30 text-white'
                 : isAd
                   ? 'bg-red-900/30 text-red-300 hover:bg-red-900/50'
-                  : 'text-gray-300 hover:bg-gray-800'
+                  : editable
+                    ? 'text-gray-300 hover:bg-gray-700 border border-transparent hover:border-gray-600'
+                    : 'text-gray-300 hover:bg-gray-800'
             }`}
           >
             <span className="text-xs text-gray-500 mr-2">{formatTime(seg.start)}</span>
             {seg.text}
+            {editable && isAd && (
+              <span className="ml-2 text-xs text-red-400" title="Click to remove ad marking">✕</span>
+            )}
           </div>
         );
       })}
