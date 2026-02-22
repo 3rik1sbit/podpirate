@@ -3,10 +3,9 @@ package com.podpirate.service
 import com.podpirate.model.*
 import com.podpirate.repository.*
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.transaction.support.TransactionSynchronization
-import org.springframework.transaction.support.TransactionSynchronizationManager
 
 data class SubscribeRequest(
     val feedUrl: String,
@@ -16,13 +15,15 @@ data class SubscribeRequest(
     val artworkUrl: String? = null,
 )
 
+data class EpisodesReadyEvent(val episodeIds: List<Long>)
+
 @Service
 class SubscriptionService(
     private val podcastRepository: PodcastRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val episodeRepository: EpisodeRepository,
     private val rssFeedService: RssFeedService,
-    private val episodeDownloadService: EpisodeDownloadService,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -93,11 +94,8 @@ class SubscriptionService(
 
         log.info("Synced ${feedEpisodes.size} episodes for ${podcast.title}")
 
-        // Trigger downloads after the transaction commits so async threads can find the episodes
-        TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
-            override fun afterCommit() {
-                savedEpisodeIds.forEach { episodeDownloadService.downloadAsync(it) }
-            }
-        })
+        if (savedEpisodeIds.isNotEmpty()) {
+            eventPublisher.publishEvent(EpisodesReadyEvent(savedEpisodeIds))
+        }
     }
 }
