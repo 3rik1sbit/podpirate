@@ -42,6 +42,7 @@ data class Episode(
     @Column(unique = true)
     val guid: String? = null,
 
+    @Column(nullable = false, columnDefinition = "integer default 0")
     val priority: Int = 0,
 
     @Enumerated(EnumType.STRING)
