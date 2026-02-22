@@ -3,6 +3,8 @@ package com.podpirate.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,7 +31,7 @@ private val statusColors = mapOf(
 private val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
 @Composable
-fun EpisodeRow(episode: Episode, onClick: () -> Unit) {
+fun EpisodeRow(episode: Episode, onClick: () -> Unit, onAddToQueue: (() -> Unit)? = null) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
@@ -47,16 +49,18 @@ fun EpisodeRow(episode: Episode, onClick: () -> Unit) {
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    episode.publishedAt?.let {
-                        try {
-                            val instant = Instant.parse(it)
-                            val date = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+                    episode.publishedAt?.let { raw ->
+                        val formatted = runCatching {
+                            val instant = Instant.parse(raw)
+                            instant.atZone(ZoneId.systemDefault()).toLocalDate().format(dateFormatter)
+                        }.getOrNull()
+                        if (formatted != null) {
                             Text(
-                                date.format(dateFormatter),
+                                formatted,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        } catch (_: Exception) {}
+                        }
                     }
                     episode.duration?.let {
                         val h = it / 3600
@@ -68,6 +72,12 @@ fun EpisodeRow(episode: Episode, onClick: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                }
+            }
+
+            if (onAddToQueue != null) {
+                IconButton(onClick = onAddToQueue, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Add to queue", modifier = Modifier.size(18.dp))
                 }
             }
 

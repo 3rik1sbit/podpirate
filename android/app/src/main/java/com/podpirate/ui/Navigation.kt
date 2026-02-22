@@ -2,9 +2,8 @@ package com.podpirate.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Subscriptions
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,13 +18,15 @@ import com.podpirate.ui.screens.*
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector?) {
     data object Feed : Screen("feed", "Feed", Icons.Default.Home)
+    data object Queue : Screen("queue", "Queue", Icons.AutoMirrored.Filled.QueueMusic)
     data object Search : Screen("search", "Search", Icons.Default.Search)
-    data object Subscriptions : Screen("subscriptions", "Subscriptions", Icons.Default.Subscriptions)
+    data object Downloads : Screen("downloads", "Downloads", Icons.Default.Download)
+    data object Subscriptions : Screen("subscriptions", "Subs", Icons.Default.Subscriptions)
     data object PodcastDetail : Screen("podcast/{podcastId}", "Podcast", null)
     data object EpisodePlayer : Screen("episode/{episodeId}", "Episode", null)
 }
 
-val bottomNavItems = listOf(Screen.Feed, Screen.Search, Screen.Subscriptions)
+val bottomNavItems = listOf(Screen.Feed, Screen.Queue, Screen.Search, Screen.Downloads, Screen.Subscriptions)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,8 +79,16 @@ fun PodPirateNavHost() {
                     onEpisodeClick = { navController.navigate("episode/$it") },
                 )
             }
+            composable(Screen.Queue.route) {
+                QueueScreen()
+            }
             composable(Screen.Search.route) {
                 SearchScreen()
+            }
+            composable(Screen.Downloads.route) {
+                DownloadsScreen(
+                    onEpisodeClick = { navController.navigate("episode/$it") },
+                )
             }
             composable(Screen.Subscriptions.route) {
                 SubscriptionsScreen(

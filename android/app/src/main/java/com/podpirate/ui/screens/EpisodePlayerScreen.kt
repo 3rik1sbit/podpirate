@@ -9,8 +9,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,14 +20,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
+import com.podpirate.PlaybackController
 import com.podpirate.data.api.ApiClient
-import com.podpirate.data.model.TranscriptionSegment
+import com.podpirate.data.download.DownloadManager
+import com.podpirate.data.local.AppDatabase
+import com.podpirate.data.local.entity.QueueItem
 import com.podpirate.ui.screens.viewmodels.EpisodePlayerViewModel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EpisodePlayerScreen(
     episodeId: Long,
@@ -40,32 +40,42 @@ fun EpisodePlayerScreen(
     val loading by viewModel.loading.collectAsState()
 
     val context = LocalContext.current
-    val player = remember { ExoPlayer.Builder(context).build() }
-    var isPlaying by remember { mutableStateOf(false) }
-    var currentPosition by remember { mutableLongStateOf(0L) }
+    val isPlaying by PlaybackController.isPlaying.collectAsState()
+    val currentPosition by PlaybackController.currentPosition.collectAsState()
+    val duration by PlaybackController.duration.collectAsState()
+    val controller by PlaybackController.controller.collectAsState()
+    val currentEpisodeId by PlaybackController.currentEpisodeId.collectAsState()
+
     var useProcessed by remember { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope()
+
+    val db = remember { AppDatabase.getInstance(context) }
+    var isDownloaded by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableIntStateOf(-1) }
 
     LaunchedEffect(episodeId) { viewModel.load(episodeId) }
 
-    // Set media source when episode loads or toggle changes
+    // Check download status
+    LaunchedEffect(episodeId) {
+        val dl = db.downloadDao().get(episodeId)
+        if (dl != null) {
+            isDownloaded = dl.downloadProgress >= 100
+            downloadProgress = dl.downloadProgress
+        }
+    }
+
+    // Start playback when episode loads (only if not already playing this episode)
     LaunchedEffect(episode, useProcessed) {
-        episode?.let {
-            val url = ApiClient.audioUrl(it.id, useProcessed)
-            player.setMediaItem(MediaItem.fromUri(url))
-            player.prepare()
+        episode?.let { ep ->
+            if (currentEpisodeId != ep.id) {
+                val savedPosition = db.playbackPositionDao().get(ep.id)
+                val seekTo = savedPosition?.positionMs ?: 0L
+                val dl = db.downloadDao().get(ep.id)
+                val localPath = if (dl != null && dl.downloadProgress >= 100) dl.filePath else null
+                val url = ApiClient.audioUrl(ep.id, useProcessed)
+                PlaybackController.playEpisode(ep.id, url, seekTo, localPath)
+            }
         }
-    }
-
-    // Track playback position
-    LaunchedEffect(isPlaying) {
-        while (isPlaying) {
-            currentPosition = player.currentPosition
-            delay(500)
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { player.release() }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -99,35 +109,95 @@ fun EpisodePlayerScreen(
             ) {
                 FilledIconButton(
                     onClick = {
-                        if (isPlaying) player.pause() else player.play()
-                        isPlaying = !isPlaying
+                        controller?.let { mc ->
+                            if (currentEpisodeId != ep.id) {
+                                val url = ApiClient.audioUrl(ep.id, useProcessed)
+                                PlaybackController.playEpisode(ep.id, url)
+                            } else if (isPlaying) {
+                                mc.pause()
+                            } else {
+                                mc.play()
+                            }
+                        }
                     },
                 ) {
                     Icon(
-                        if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        if (isPlaying && currentEpisodeId == ep.id) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
                     )
                 }
 
+                val displayPosition = if (currentEpisodeId == ep.id) currentPosition else 0L
                 Text(
-                    formatMs(currentPosition),
+                    formatMs(displayPosition),
                     style = MaterialTheme.typography.bodyMedium,
                 )
 
+                val displayDuration = if (currentEpisodeId == ep.id) duration else 0L
                 Slider(
-                    value = currentPosition.toFloat(),
-                    onValueChange = { player.seekTo(it.toLong()) },
-                    valueRange = 0f..(player.duration.coerceAtLeast(1L).toFloat()),
+                    value = displayPosition.toFloat(),
+                    onValueChange = { controller?.seekTo(it.toLong()) },
+                    valueRange = 0f..(displayDuration.coerceAtLeast(1L).toFloat()),
                     modifier = Modifier.weight(1f),
                 )
             }
 
+            // Action buttons row
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Checkbox(checked = useProcessed, onCheckedChange = { useProcessed = it })
-                Text("Ad-free version", style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = useProcessed, onCheckedChange = { useProcessed = it })
+                    Text("Ad-free version", style = MaterialTheme.typography.bodySmall)
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Add to queue
+                IconButton(onClick = {
+                    coroutineScope.launch {
+                        val queueDao = db.queueDao()
+                        val maxOrder = queueDao.maxSortOrder()
+                        queueDao.insert(
+                            QueueItem(
+                                episodeId = ep.id,
+                                episodeTitle = ep.title,
+                                podcastTitle = ep.podcast?.title ?: "",
+                                audioUrl = ApiClient.audioUrl(ep.id, true),
+                                artworkUrl = ep.podcast?.artworkUrl,
+                                sortOrder = maxOrder + 1,
+                            )
+                        )
+                    }
+                }) {
+                    Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Add to queue")
+                }
+
+                // Download
+                IconButton(onClick = {
+                    if (!isDownloaded && downloadProgress < 0) {
+                        DownloadManager.enqueueDownload(
+                            context = context,
+                            episodeId = ep.id,
+                            episodeTitle = ep.title,
+                            podcastTitle = ep.podcast?.title ?: "",
+                            audioUrl = ApiClient.audioUrl(ep.id, true),
+                            artworkUrl = ep.podcast?.artworkUrl,
+                        )
+                        downloadProgress = 0
+                    }
+                }) {
+                    Icon(
+                        when {
+                            isDownloaded -> Icons.Default.DownloadDone
+                            downloadProgress >= 0 -> Icons.Default.Downloading
+                            else -> Icons.Default.Download
+                        },
+                        contentDescription = "Download",
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -141,7 +211,7 @@ fun EpisodePlayerScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
-                val currentTimeSec = currentPosition / 1000.0
+                val currentTimeSec = if (currentEpisodeId == ep.id) currentPosition / 1000.0 else 0.0
                 val listState = rememberLazyListState()
 
                 LazyColumn(
@@ -163,7 +233,7 @@ fun EpisodePlayerScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(bgColor, RoundedCornerShape(6.dp))
-                                .clickable { player.seekTo((seg.start * 1000).toLong()) }
+                                .clickable { controller?.seekTo((seg.start * 1000).toLong()) }
                                 .padding(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             Text(

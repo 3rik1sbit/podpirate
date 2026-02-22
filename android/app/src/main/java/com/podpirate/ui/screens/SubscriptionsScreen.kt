@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,6 +14,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.podpirate.ui.components.PodcastCard
 import com.podpirate.ui.screens.viewmodels.SubscriptionsViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscriptionsScreen(
     onPodcastClick: (Long) -> Unit,
@@ -23,15 +25,24 @@ fun SubscriptionsScreen(
 
     LaunchedEffect(Unit) { viewModel.load() }
 
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        if (loading) {
+    PullToRefreshBox(
+        isRefreshing = loading,
+        onRefresh = { viewModel.load() },
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+    ) {
+        if (loading && subscriptions.isEmpty()) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (subscriptions.isEmpty()) {
-            Text(
-                "No subscriptions yet.",
-                modifier = Modifier.align(Alignment.Center),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    "No subscriptions yet.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(160.dp),

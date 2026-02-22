@@ -64,7 +64,7 @@
         android:strokeLineCap="round"/>
 
     <!-- Left ear cup -->
-    <path android:pathData="M130,225h35v55h-35z" android:fillColor="#9333ea" android:pathData="M140,225a10,10 0,0 1,10 -10h15a10,10 0,0 1,10 10v35a10,10 0,0 1,-10 10h-15a10,10 0,0 1,-10 -10z"/>
+    <path android:pathData="M140,225a10,10 0,0 1,10 -10h15a10,10 0,0 1,10 10v35a10,10 0,0 1,-10 10h-15a10,10 0,0 1,-10 -10z" android:fillColor="#9333ea"/>
     <path android:pathData="M130,225 L165,225 L165,280 L130,280Z" android:fillColor="#9333ea"/>
     <!-- Right ear cup -->
     <path android:pathData="M347,225 L382,225 L382,280 L347,280Z" android:fillColor="#9333ea"/>
