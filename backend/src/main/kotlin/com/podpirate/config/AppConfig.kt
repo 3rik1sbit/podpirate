@@ -70,4 +70,16 @@ class AppConfig {
         executor.initialize()
         return executor
     }
+
+    @Bean("adDetectionExecutor")
+    fun adDetectionExecutor(): Executor {
+        val executor = ThreadPoolTaskExecutor()
+        executor.corePoolSize = 1
+        executor.maxPoolSize = 1
+        executor.queueCapacity = 10000
+        executor.setThreadNamePrefix("ad-detect-")
+        executor.setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())
+        executor.initialize()
+        return executor
+    }
 }

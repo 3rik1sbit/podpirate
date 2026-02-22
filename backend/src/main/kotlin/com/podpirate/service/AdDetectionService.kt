@@ -28,7 +28,7 @@ class AdDetectionService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Async("aiExecutor")
+    @Async("adDetectionExecutor")
     fun detectAdsAsync(episodeId: Long) {
         try {
             detectAds(episodeId)
