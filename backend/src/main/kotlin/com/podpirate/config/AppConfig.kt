@@ -62,8 +62,8 @@ class AppConfig {
     @Bean("aiExecutor")
     fun aiExecutor(): Executor {
         val executor = ThreadPoolTaskExecutor()
-        executor.corePoolSize = 3
-        executor.maxPoolSize = 4
+        executor.corePoolSize = 1
+        executor.maxPoolSize = 1
         executor.queueCapacity = 10000
         executor.setThreadNamePrefix("ai-")
         executor.setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())

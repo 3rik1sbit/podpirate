@@ -1,10 +1,9 @@
 import json
 import os
 import tempfile
-import threading
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import StreamingResponse
-from faster_whisper import WhisperModel
+from faster_whisper import WhisperModel, BatchedInferencePipeline
 
 app = FastAPI(title="PodPirate Whisper Service")
 
@@ -13,13 +12,14 @@ device = os.getenv("WHISPER_DEVICE", "cpu")
 compute_type = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 
 model = None
-model_lock = threading.Lock()
+batch_size = int(os.getenv("WHISPER_BATCH_SIZE", "16"))
 
 
 @app.on_event("startup")
 def load_model():
     global model
-    model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    whisper = WhisperModel(model_size, device=device, compute_type=compute_type)
+    model = BatchedInferencePipeline(model=whisper)
 
 
 @app.get("/health")
@@ -35,16 +35,15 @@ async def transcribe(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
-        with model_lock:
-            segments_iter, info = model.transcribe(tmp_path, beam_size=5)
+        segments_iter, info = model.transcribe(tmp_path, beam_size=3, batch_size=batch_size)
 
-            segments = []
-            for segment in segments_iter:
-                segments.append({
-                    "start": round(segment.start, 2),
-                    "end": round(segment.end, 2),
-                    "text": segment.text.strip(),
-                })
+        segments = []
+        for segment in segments_iter:
+            segments.append({
+                "start": round(segment.start, 2),
+                "end": round(segment.end, 2),
+                "text": segment.text.strip(),
+            })
 
         return {
             "language": info.language,
@@ -65,20 +64,19 @@ async def transcribe_stream(file: UploadFile = File(...)):
 
     def generate():
         try:
-            with model_lock:
-                segments_iter, info = model.transcribe(tmp_path, beam_size=5)
-                for segment in segments_iter:
-                    yield json.dumps({
-                        "start": round(segment.start, 2),
-                        "end": round(segment.end, 2),
-                        "text": segment.text.strip(),
-                    }) + "\n"
+            segments_iter, info = model.transcribe(tmp_path, beam_size=3, batch_size=batch_size)
+            for segment in segments_iter:
                 yield json.dumps({
-                    "done": True,
-                    "language": info.language,
-                    "language_probability": round(info.language_probability, 2),
-                    "duration": round(info.duration, 2),
+                    "start": round(segment.start, 2),
+                    "end": round(segment.end, 2),
+                    "text": segment.text.strip(),
                 }) + "\n"
+            yield json.dumps({
+                "done": True,
+                "language": info.language,
+                "language_probability": round(info.language_probability, 2),
+                "duration": round(info.duration, 2),
+            }) + "\n"
         finally:
             os.unlink(tmp_path)
 

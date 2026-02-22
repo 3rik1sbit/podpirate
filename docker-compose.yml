@@ -23,6 +23,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-podpirate}
       PODPIRATE_WHISPER_URL: http://${AI_WORKER_HOST}:8000
       PODPIRATE_OLLAMA_URL: http://${AI_WORKER_HOST}:11435
+      PODPIRATE_OLLAMA_MODEL: llama3.2:1b
       PODPIRATE_AUDIO_DIR: /data/audio
       PODPIRATE_PROCESSED_DIR: /data/processed
     volumes:
