@@ -37,4 +37,7 @@ interface EpisodeRepository : JpaRepository<Episode, Long> {
 
     @Query("SELECT COUNT(e) FROM Episode e WHERE e.status NOT IN ('READY', 'ERROR')")
     fun countRemaining(): Long
+
+    @Query("SELECT e.id, e.podcast.id, e.podcast.title FROM Episode e")
+    fun findEpisodePodcastMappings(): List<Array<Any>>
 }

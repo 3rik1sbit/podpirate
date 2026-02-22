@@ -114,10 +114,12 @@ class StatsController(
         )
     }
 
+    private data class PodcastInfo(val podcastId: Long, val podcastTitle: String)
+
     private fun calculateStorage(): List<PodcastStorage> {
-        // Build episode ID → podcast lookup
-        val episodePodcastMap = episodeRepository.findAll()
-            .associate { it.id to it.podcast }
+        // Lightweight query: episode ID → (podcast ID, podcast title)
+        val episodePodcastMap = episodeRepository.findEpisodePodcastMappings()
+            .associate { row -> (row[0] as Long) to PodcastInfo(row[1] as Long, row[2] as String) }
 
         // Scan audio and processed directories for episode files
         val audioSizes = scanDir(Path.of(properties.audioDir))
@@ -127,24 +129,26 @@ class StatsController(
         val podcastAudio = mutableMapOf<Long, Long>()
         val podcastProcessed = mutableMapOf<Long, Long>()
         val podcastEpisodes = mutableMapOf<Long, MutableSet<Long>>()
+        val podcastTitles = mutableMapOf<Long, String>()
 
         for ((episodeId, bytes) in audioSizes) {
-            val podcast = episodePodcastMap[episodeId] ?: continue
-            podcastAudio.merge(podcast.id, bytes) { a, b -> a + b }
-            podcastEpisodes.getOrPut(podcast.id) { mutableSetOf() }.add(episodeId)
+            val info = episodePodcastMap[episodeId] ?: continue
+            podcastAudio.merge(info.podcastId, bytes) { a, b -> a + b }
+            podcastEpisodes.getOrPut(info.podcastId) { mutableSetOf() }.add(episodeId)
+            podcastTitles[info.podcastId] = info.podcastTitle
         }
         for ((episodeId, bytes) in processedSizes) {
-            val podcast = episodePodcastMap[episodeId] ?: continue
-            podcastProcessed.merge(podcast.id, bytes) { a, b -> a + b }
-            podcastEpisodes.getOrPut(podcast.id) { mutableSetOf() }.add(episodeId)
+            val info = episodePodcastMap[episodeId] ?: continue
+            podcastProcessed.merge(info.podcastId, bytes) { a, b -> a + b }
+            podcastEpisodes.getOrPut(info.podcastId) { mutableSetOf() }.add(episodeId)
+            podcastTitles[info.podcastId] = info.podcastTitle
         }
 
         val allPodcastIds = podcastAudio.keys + podcastProcessed.keys
         return allPodcastIds.map { podcastId ->
-            val podcast = episodePodcastMap.values.first { it.id == podcastId }
             PodcastStorage(
                 podcastId = podcastId,
-                podcastTitle = podcast.title,
+                podcastTitle = podcastTitles[podcastId] ?: "Unknown",
                 audioBytes = podcastAudio[podcastId] ?: 0,
                 processedBytes = podcastProcessed[podcastId] ?: 0,
                 episodeCount = podcastEpisodes[podcastId]?.size ?: 0,

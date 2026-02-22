@@ -3,6 +3,8 @@ spring:
     url: jdbc:postgresql://localhost:5432/podpirate
     username: podpirate
     password: podpirate
+    hikari:
+      maximum-pool-size: 20
   jpa:
     hibernate:
       ddl-auto: update
