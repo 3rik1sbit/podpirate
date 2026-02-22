@@ -146,6 +146,14 @@ export interface EpisodeSummary {
   durationSeconds: number | null;
 }
 
+export interface PodcastStorage {
+  podcastId: number;
+  podcastTitle: string;
+  audioBytes: number;
+  processedBytes: number;
+  episodeCount: number;
+}
+
 export interface StatsResponse {
   pipeline: Record<string, number>;
   totalEpisodes: number;
@@ -160,4 +168,5 @@ export interface StatsResponse {
   longestEpisode: EpisodeSummary | null;
   shortestEpisode: EpisodeSummary | null;
   mostAdHeavyEpisode: EpisodeSummary | null;
+  storage: PodcastStorage[];
 }

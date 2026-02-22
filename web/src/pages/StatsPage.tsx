@@ -25,6 +25,13 @@ function formatHours(seconds: number): string {
   return `${(seconds / 3600).toFixed(1)} hours`;
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
     <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
@@ -160,10 +167,48 @@ export default function StatsPage() {
         <Stat label="Transcription Segments" value={stats.transcriptionSegments.toLocaleString()} />
       </div>
 
+      {/* Storage */}
+      {stats.storage && stats.storage.length > 0 && (
+        <>
+          <h2 className="text-lg font-semibold mb-3 mt-6">Storage</h2>
+          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700 text-gray-400">
+                  <th className="text-left p-3">Podcast</th>
+                  <th className="text-right p-3">Episodes</th>
+                  <th className="text-right p-3">Audio</th>
+                  <th className="text-right p-3">Processed</th>
+                  <th className="text-right p-3">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.storage.map(s => (
+                  <tr key={s.podcastId} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                    <td className="p-3 font-medium truncate max-w-xs" title={s.podcastTitle}>{s.podcastTitle}</td>
+                    <td className="p-3 text-right text-gray-400">{s.episodeCount}</td>
+                    <td className="p-3 text-right text-gray-400">{formatBytes(s.audioBytes)}</td>
+                    <td className="p-3 text-right text-gray-400">{formatBytes(s.processedBytes)}</td>
+                    <td className="p-3 text-right font-medium text-purple-400">{formatBytes(s.audioBytes + s.processedBytes)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-gray-700/30 font-semibold">
+                  <td className="p-3">Total</td>
+                  <td className="p-3 text-right">{stats.storage.reduce((sum, s) => sum + s.episodeCount, 0)}</td>
+                  <td className="p-3 text-right">{formatBytes(stats.storage.reduce((sum, s) => sum + s.audioBytes, 0))}</td>
+                  <td className="p-3 text-right">{formatBytes(stats.storage.reduce((sum, s) => sum + s.processedBytes, 0))}</td>
+                  <td className="p-3 text-right text-purple-400">{formatBytes(stats.storage.reduce((sum, s) => sum + s.audioBytes + s.processedBytes, 0))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       {/* Notable Episodes */}
       {(stats.longestEpisode || stats.shortestEpisode || stats.mostAdHeavyEpisode) && (
         <>
-          <h2 className="text-lg font-semibold mb-3">Notable Episodes</h2>
+          <h2 className="text-lg font-semibold mb-3 mt-6">Notable Episodes</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <EpisodeCard label="Longest" ep={stats.longestEpisode} />
             <EpisodeCard label="Shortest" ep={stats.shortestEpisode} />
