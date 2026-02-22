@@ -163,7 +163,7 @@ class StatsController(
             stream.forEach { file ->
                 // Files are named episode_{id}.ext
                 val name = file.fileName.toString()
-                val id = name.removePrefix("episode_").substringBefore(".").toLongOrNull()
+                val id = name.removePrefix("episode_").substringBefore("_").substringBefore(".").toLongOrNull()
                 if (id != null) {
                     sizes[id] = Files.size(file)
                 }
