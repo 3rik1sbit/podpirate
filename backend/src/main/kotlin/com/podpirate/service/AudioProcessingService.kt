@@ -21,7 +21,7 @@ class AudioProcessingService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Async
+    @Async("aiExecutor")
     fun processAsync(episodeId: Long) {
         try {
             process(episodeId)

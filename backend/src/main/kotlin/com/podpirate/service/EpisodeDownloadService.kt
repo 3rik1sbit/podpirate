@@ -21,7 +21,7 @@ class EpisodeDownloadService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Async
+    @Async("downloadExecutor")
     fun downloadAsync(episodeId: Long) {
         try {
             download(episodeId)

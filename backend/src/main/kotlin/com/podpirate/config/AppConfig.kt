@@ -35,13 +35,25 @@ class AppConfig {
         }
         .build()
 
-    @Bean("taskExecutor")
-    fun taskExecutor(): Executor {
+    @Bean("downloadExecutor")
+    fun downloadExecutor(): Executor {
         val executor = ThreadPoolTaskExecutor()
         executor.corePoolSize = 4
         executor.maxPoolSize = 8
         executor.queueCapacity = 1000
-        executor.setThreadNamePrefix("podpirate-")
+        executor.setThreadNamePrefix("download-")
+        executor.setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())
+        executor.initialize()
+        return executor
+    }
+
+    @Bean("aiExecutor")
+    fun aiExecutor(): Executor {
+        val executor = ThreadPoolTaskExecutor()
+        executor.corePoolSize = 2
+        executor.maxPoolSize = 4
+        executor.queueCapacity = 1000
+        executor.setThreadNamePrefix("ai-")
         executor.setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())
         executor.initialize()
         return executor

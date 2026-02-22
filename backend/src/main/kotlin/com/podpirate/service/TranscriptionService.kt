@@ -30,7 +30,7 @@ class TranscriptionService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Async
+    @Async("aiExecutor")
     fun transcribeAsync(episodeId: Long) {
         try {
             transcribe(episodeId)
