@@ -16,9 +16,14 @@ const STATUS_COLORS: Record<string, string> = {
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${Math.round(seconds)}s`;
   if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-  const h = Math.floor(seconds / 3600);
+  const days = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
   const m = Math.round((seconds % 3600) / 60);
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0 && days < 7) parts.push(`${m}m`);
+  return parts.join(' ') || '0m';
 }
 
 function formatLargeTime(seconds: number): string {
