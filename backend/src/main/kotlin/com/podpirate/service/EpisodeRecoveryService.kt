@@ -41,6 +41,15 @@ class EpisodeRecoveryService(
             log.info("Reset ${downloading.size} downloading, ${transcribing.size} transcribing, ${detectingAds.size} detecting-ads episodes")
         }
 
+        // Reset ERROR episodes back into the pipeline
+        val errors = episodeRepository.findByStatus(EpisodeStatus.ERROR)
+        for (ep in errors) {
+            episodeRepository.save(ep.copy(status = recoverStatus(ep)))
+        }
+        if (errors.isNotEmpty()) {
+            log.info("Reset ${errors.size} ERROR episodes for retry")
+        }
+
         // Now resume: download pending, transcribe downloaded (ordered by priority then newest first)
         val pending = episodeRepository.findByStatusOrdered(EpisodeStatus.PENDING)
         val downloaded = episodeRepository.findByStatusOrdered(EpisodeStatus.DOWNLOADED)

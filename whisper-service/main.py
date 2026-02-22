@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import threading
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import StreamingResponse
 from faster_whisper import WhisperModel
@@ -12,6 +13,7 @@ device = os.getenv("WHISPER_DEVICE", "cpu")
 compute_type = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 
 model = None
+model_lock = threading.Lock()
 
 
 @app.on_event("startup")
@@ -33,15 +35,16 @@ async def transcribe(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
-        segments_iter, info = model.transcribe(tmp_path, beam_size=5)
+        with model_lock:
+            segments_iter, info = model.transcribe(tmp_path, beam_size=5)
 
-        segments = []
-        for segment in segments_iter:
-            segments.append({
-                "start": round(segment.start, 2),
-                "end": round(segment.end, 2),
-                "text": segment.text.strip(),
-            })
+            segments = []
+            for segment in segments_iter:
+                segments.append({
+                    "start": round(segment.start, 2),
+                    "end": round(segment.end, 2),
+                    "text": segment.text.strip(),
+                })
 
         return {
             "language": info.language,
@@ -62,19 +65,20 @@ async def transcribe_stream(file: UploadFile = File(...)):
 
     def generate():
         try:
-            segments_iter, info = model.transcribe(tmp_path, beam_size=5)
-            for segment in segments_iter:
+            with model_lock:
+                segments_iter, info = model.transcribe(tmp_path, beam_size=5)
+                for segment in segments_iter:
+                    yield json.dumps({
+                        "start": round(segment.start, 2),
+                        "end": round(segment.end, 2),
+                        "text": segment.text.strip(),
+                    }) + "\n"
                 yield json.dumps({
-                    "start": round(segment.start, 2),
-                    "end": round(segment.end, 2),
-                    "text": segment.text.strip(),
+                    "done": True,
+                    "language": info.language,
+                    "language_probability": round(info.language_probability, 2),
+                    "duration": round(info.duration, 2),
                 }) + "\n"
-            yield json.dumps({
-                "done": True,
-                "language": info.language,
-                "language_probability": round(info.language_probability, 2),
-                "duration": round(info.duration, 2),
-            }) + "\n"
         finally:
             os.unlink(tmp_path)
 
