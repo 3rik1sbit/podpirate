@@ -38,7 +38,7 @@ class EpisodeDownloadService(
         val audioDir = Path.of(properties.audioDir)
         Files.createDirectories(audioDir)
 
-        val extension = episode.audioUrl.substringAfterLast(".").take(4).ifBlank { "mp3" }
+        val extension = episode.audioUrl.substringBefore("?").substringAfterLast(".").take(4).ifBlank { "mp3" }
         val filename = "episode_${episode.id}.$extension"
         val filePath = audioDir.resolve(filename)
 

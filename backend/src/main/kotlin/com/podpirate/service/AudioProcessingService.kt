@@ -44,7 +44,7 @@ class AudioProcessingService(
         val processedDir = Path.of(properties.processedDir)
         Files.createDirectories(processedDir)
 
-        val extension = localPath.substringAfterLast(".")
+        val extension = localPath.substringAfterLast(".").substringBefore("?")
         val outputPath = processedDir.resolve("episode_${episode.id}_clean.$extension")
 
         if (adSegments.isEmpty()) {
