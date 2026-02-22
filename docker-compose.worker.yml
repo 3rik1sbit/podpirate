@@ -33,5 +33,12 @@ services:
               count: all
               capabilities: [gpu]
 
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c", "until ollama list --host http://ollama:11434 >/dev/null 2>&1; do sleep 1; done && ollama pull --host http://ollama:11434 llama3.2"]
+
 volumes:
   ollama_data:
