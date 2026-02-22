@@ -4,6 +4,7 @@ import SubscriptionsPage from './pages/SubscriptionsPage';
 import FeedPage from './pages/FeedPage';
 import PodcastDetailPage from './pages/PodcastDetailPage';
 import EpisodePlayerPage from './pages/EpisodePlayerPage';
+import StatsPage from './pages/StatsPage';
 
 function Nav() {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -16,6 +17,7 @@ function Nav() {
       <NavLink to="/" className={linkClass}>Feed</NavLink>
       <NavLink to="/search" className={linkClass}>Search</NavLink>
       <NavLink to="/subscriptions" className={linkClass}>Subscriptions</NavLink>
+      <NavLink to="/stats" className={linkClass}>Stats</NavLink>
     </nav>
   );
 }
@@ -32,6 +34,7 @@ export default function App() {
             <Route path="/subscriptions" element={<SubscriptionsPage />} />
             <Route path="/podcasts/:id" element={<PodcastDetailPage />} />
             <Route path="/episodes/:id" element={<EpisodePlayerPage />} />
+            <Route path="/stats" element={<StatsPage />} />
           </Routes>
         </main>
       </div>

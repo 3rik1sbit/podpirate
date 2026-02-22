@@ -133,4 +133,31 @@ export const api = {
   audioUrl(episodeId: number, processed = true) {
     return `${API_BASE}/episodes/${episodeId}/audio?processed=${processed}`;
   },
+
+  getStats() {
+    return fetchJson<StatsResponse>(`${API_BASE}/stats`);
+  },
 };
+
+export interface EpisodeSummary {
+  id: number;
+  title: string;
+  podcastTitle: string;
+  durationSeconds: number | null;
+}
+
+export interface StatsResponse {
+  pipeline: Record<string, number>;
+  totalEpisodes: number;
+  remainingEpisodes: number;
+  etaSeconds: number | null;
+  totalPodcasts: number;
+  totalAudioSeconds: number;
+  avgDurationSeconds: number;
+  totalAdSeconds: number;
+  adSourceCounts: Record<string, number>;
+  transcriptionSegments: number;
+  longestEpisode: EpisodeSummary | null;
+  shortestEpisode: EpisodeSummary | null;
+  mostAdHeavyEpisode: EpisodeSummary | null;
+}

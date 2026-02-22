@@ -19,4 +19,22 @@ interface EpisodeRepository : JpaRepository<Episode, Long> {
         ORDER BY e.publishedAt DESC
     """)
     fun findFeedEpisodes(pageable: Pageable): Page<Episode>
+
+    @Query("SELECT e.status, COUNT(e) FROM Episode e GROUP BY e.status")
+    fun countByStatusGrouped(): List<Array<Any>>
+
+    @Query("SELECT COALESCE(SUM(e.duration), 0) FROM Episode e WHERE e.duration IS NOT NULL")
+    fun sumDuration(): Long
+
+    @Query("SELECT COALESCE(AVG(e.duration), 0) FROM Episode e WHERE e.duration IS NOT NULL")
+    fun avgDuration(): Double
+
+    fun findTopByDurationIsNotNullOrderByDurationDesc(pageable: Pageable): Page<Episode>
+    fun findTopByDurationIsNotNullOrderByDurationAsc(pageable: Pageable): Page<Episode>
+
+    @Query("SELECT COALESCE(AVG(e.duration), 0) FROM Episode e WHERE e.status = 'READY'")
+    fun avgDurationOfReady(): Double
+
+    @Query("SELECT COUNT(e) FROM Episode e WHERE e.status NOT IN ('READY', 'ERROR')")
+    fun countRemaining(): Long
 }

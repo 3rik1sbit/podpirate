@@ -1,0 +1,176 @@
+import { useEffect, useState } from 'react';
+import { api, StatsResponse } from '../api/client';
+
+const STATUS_ORDER = ['PENDING', 'DOWNLOADING', 'DOWNLOADED', 'TRANSCRIBING', 'DETECTING_ADS', 'PROCESSING', 'READY', 'ERROR'];
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: '#6b7280',
+  DOWNLOADING: '#3b82f6',
+  DOWNLOADED: '#60a5fa',
+  TRANSCRIBING: '#f59e0b',
+  DETECTING_ADS: '#f97316',
+  PROCESSING: '#a855f7',
+  READY: '#22c55e',
+  ERROR: '#ef4444',
+};
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function formatHours(seconds: number): string {
+  return `${(seconds / 3600).toFixed(1)} hours`;
+}
+
+function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+  return (
+    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div className="text-sm text-gray-400 mb-1">{label}</div>
+      <div className="text-2xl font-bold">{value}</div>
+      {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+function EpisodeCard({ label, ep }: { label: string; ep: { id: number; title: string; podcastTitle: string; durationSeconds: number | null } | null }) {
+  if (!ep) return null;
+  return (
+    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <div className="text-sm text-gray-400 mb-1">{label}</div>
+      <div className="font-semibold truncate" title={ep.title}>{ep.title}</div>
+      <div className="text-xs text-gray-500">{ep.podcastTitle}</div>
+      {ep.durationSeconds != null && (
+        <div className="text-sm text-purple-400 mt-1">{formatDuration(ep.durationSeconds)}</div>
+      )}
+    </div>
+  );
+}
+
+export default function StatsPage() {
+  const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = () => {
+    api.getStats()
+      .then(data => { setStats(data); setError(null); })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <p className="text-gray-400">Loading stats...</p>;
+  if (error) return <p className="text-red-400">Error: {error}</p>;
+  if (!stats) return null;
+
+  const readyCount = stats.pipeline['READY'] || 0;
+  const errorCount = stats.pipeline['ERROR'] || 0;
+  const total = stats.totalEpisodes;
+  const adPct = stats.totalAudioSeconds > 0
+    ? ((stats.totalAdSeconds / stats.totalAudioSeconds) * 100).toFixed(1)
+    : '0';
+  const autoAds = stats.adSourceCounts['AUTO'] || 0;
+  const manualAds = stats.adSourceCounts['MANUAL'] || 0;
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Stats</h1>
+
+      {/* Pipeline Progress */}
+      <div className="mb-8">
+        <div className="flex items-baseline justify-between mb-2">
+          <h2 className="text-lg font-semibold">Pipeline Progress</h2>
+          <span className="text-sm text-gray-400">
+            {readyCount} of {total} ready
+            {errorCount > 0 && <span className="text-red-400 ml-2">({errorCount} errors)</span>}
+          </span>
+        </div>
+
+        {/* Stacked bar */}
+        <div className="w-full h-6 rounded-full overflow-hidden flex bg-gray-800 border border-gray-700">
+          {STATUS_ORDER.map(status => {
+            const count = stats.pipeline[status] || 0;
+            if (count === 0) return null;
+            const pct = (count / total) * 100;
+            return (
+              <div
+                key={status}
+                style={{ width: `${pct}%`, backgroundColor: STATUS_COLORS[status] }}
+                className="h-full transition-all duration-500"
+                title={`${status}: ${count}`}
+              />
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+          {STATUS_ORDER.map(status => {
+            const count = stats.pipeline[status] || 0;
+            if (count === 0) return null;
+            return (
+              <div key={status} className="flex items-center gap-1.5 text-xs text-gray-400">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[status] }} />
+                {status} ({count})
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ETA Card */}
+      <div className="mb-8 bg-gray-800 rounded-lg p-4 border border-gray-700">
+        {stats.remainingEpisodes > 0 ? (
+          <>
+            <div className="text-sm text-gray-400">Estimated time remaining</div>
+            <div className="text-2xl font-bold text-purple-400">
+              {stats.etaSeconds ? formatDuration(stats.etaSeconds) : 'Calculating...'}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {stats.remainingEpisodes} episodes in queue
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-sm text-gray-400">Pipeline status</div>
+            <div className="text-2xl font-bold text-green-400">All caught up!</div>
+          </>
+        )}
+      </div>
+
+      {/* Fun Facts Grid */}
+      <h2 className="text-lg font-semibold mb-3">Library</h2>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+        <Stat label="Podcasts" value={stats.totalPodcasts} />
+        <Stat label="Episodes" value={stats.totalEpisodes} />
+        <Stat label="Total Audio" value={formatHours(stats.totalAudioSeconds)} />
+        <Stat label="Avg Duration" value={formatDuration(stats.avgDurationSeconds)} />
+        <Stat label="Total Ad Time" value={formatDuration(stats.totalAdSeconds)} />
+        <Stat label="Ad Percentage" value={`${adPct}%`} />
+        <Stat label="Auto Ads" value={autoAds} sub="detected by AI" />
+        <Stat label="Manual Ads" value={manualAds} sub="marked by hand" />
+        <Stat label="Transcription Segments" value={stats.transcriptionSegments.toLocaleString()} />
+      </div>
+
+      {/* Notable Episodes */}
+      {(stats.longestEpisode || stats.shortestEpisode || stats.mostAdHeavyEpisode) && (
+        <>
+          <h2 className="text-lg font-semibold mb-3">Notable Episodes</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <EpisodeCard label="Longest" ep={stats.longestEpisode} />
+            <EpisodeCard label="Shortest" ep={stats.shortestEpisode} />
+            <EpisodeCard label="Most Ads" ep={stats.mostAdHeavyEpisode} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
