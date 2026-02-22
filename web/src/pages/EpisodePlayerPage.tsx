@@ -82,7 +82,7 @@ export default function EpisodePlayerPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">{episode.title}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-2">{episode.title}</h1>
       <p className="text-gray-400 mb-1 text-sm">
         Status: <span className={`font-medium ${episode.status === 'READY' ? 'text-green-400' : 'text-yellow-400'}`}>
           {episode.status}
@@ -93,7 +93,7 @@ export default function EpisodePlayerPage() {
       )}
 
       <div className="mb-6">
-        <div className="flex items-center gap-4 mb-3">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-3">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

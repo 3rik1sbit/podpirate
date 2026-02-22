@@ -28,12 +28,12 @@ export default function PodcastDetailPage() {
 
   return (
     <div>
-      <div className="flex gap-6 mb-8">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mb-8">
         {podcast.artworkUrl && (
-          <img src={podcast.artworkUrl} alt="" className="w-32 h-32 rounded-lg object-cover" />
+          <img src={podcast.artworkUrl} alt="" className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover" />
         )}
-        <div>
-          <h1 className="text-2xl font-bold">{podcast.title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">{podcast.title}</h1>
           {podcast.author && <p className="text-gray-400 mt-1">{podcast.author}</p>}
           {podcast.description && (
             <p className="text-gray-300 mt-3 text-sm line-clamp-3">{podcast.description}</p>

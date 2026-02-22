@@ -30,7 +30,7 @@ export default function SubscriptionsPage() {
           No subscriptions yet. <Link to="/search" className="text-purple-400 hover:underline">Search for podcasts</Link> to subscribe.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {subs.map(sub => (
             <PodcastCard
               key={sub.id}

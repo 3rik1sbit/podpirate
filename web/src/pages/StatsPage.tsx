@@ -21,8 +21,39 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-function formatHours(seconds: number): string {
-  return `${(seconds / 3600).toFixed(1)} hours`;
+function formatLargeTime(seconds: number): string {
+  const hours = seconds / 3600;
+  if (hours < 24) return `${hours.toFixed(1)} hours`;
+  const days = hours / 24;
+  if (days < 7) return `${days.toFixed(1)} days`;
+  const weeks = days / 7;
+  if (weeks < 4.3) return `${weeks.toFixed(1)} weeks`;
+  const months = days / 30.44;
+  if (months < 12) return `${months.toFixed(1)} months`;
+  const years = days / 365.25;
+  return `${years.toFixed(1)} years`;
+}
+
+function formatLargeTimeFull(seconds: number): string {
+  const hours = seconds / 3600;
+  if (hours < 24) return `${hours.toFixed(1)} hours`;
+  const days = hours / 24;
+  const parts: string[] = [];
+  if (days >= 365.25) {
+    const y = Math.floor(days / 365.25);
+    parts.push(`${y}y`);
+  }
+  if (days >= 30.44) {
+    const m = Math.floor((days % 365.25) / 30.44);
+    if (m > 0) parts.push(`${m}mo`);
+  }
+  if (days >= 7) {
+    const w = Math.floor((days % 30.44) / 7);
+    if (w > 0) parts.push(`${w}w`);
+  }
+  const d = Math.floor(days % 7);
+  if (d > 0) parts.push(`${d}d`);
+  return parts.join(' ') || '0d';
 }
 
 function formatBytes(bytes: number): string {
@@ -34,9 +65,9 @@ function formatBytes(bytes: number): string {
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-      <div className="text-sm text-gray-400 mb-1">{label}</div>
-      <div className="text-2xl font-bold">{value}</div>
+    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-700">
+      <div className="text-xs sm:text-sm text-gray-400 mb-1">{label}</div>
+      <div className="text-lg sm:text-2xl font-bold break-words">{value}</div>
       {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
     </div>
   );
@@ -93,7 +124,7 @@ export default function StatsPage() {
 
       {/* Pipeline Progress */}
       <div className="mb-8">
-        <div className="flex items-baseline justify-between mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-2 gap-1">
           <h2 className="text-lg font-semibold">Pipeline Progress</h2>
           <span className="text-sm text-gray-400">
             {readyCount} of {total} ready
@@ -158,9 +189,9 @@ export default function StatsPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
         <Stat label="Podcasts" value={stats.totalPodcasts} />
         <Stat label="Episodes" value={stats.totalEpisodes} />
-        <Stat label="Total Audio" value={formatHours(stats.totalAudioSeconds)} />
+        <Stat label="Total Audio" value={formatLargeTime(stats.totalAudioSeconds)} sub={formatLargeTimeFull(stats.totalAudioSeconds)} />
         <Stat label="Avg Duration" value={formatDuration(stats.avgDurationSeconds)} />
-        <Stat label="Total Ad Time" value={formatDuration(stats.totalAdSeconds)} />
+        <Stat label="Total Ad Time" value={formatLargeTime(stats.totalAdSeconds)} sub={stats.totalAdSeconds >= 86400 ? formatLargeTimeFull(stats.totalAdSeconds) : undefined} />
         <Stat label="Ad Percentage" value={`${adPct}%`} />
         <Stat label="Auto Ads" value={autoAds} sub="detected by AI" />
         <Stat label="Manual Ads" value={manualAds} sub="marked by hand" />
@@ -171,8 +202,8 @@ export default function StatsPage() {
       {stats.storage && stats.storage.length > 0 && (
         <>
           <h2 className="text-lg font-semibold mb-3 mt-6">Storage</h2>
-          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b border-gray-700 text-gray-400">
                   <th className="text-left p-3">Podcast</th>
