@@ -10,6 +10,7 @@ import org.springframework.http.codec.json.Jackson2JsonDecoder
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import org.springframework.web.reactive.function.client.WebClient
 import java.util.concurrent.Executor
+import java.util.concurrent.ThreadPoolExecutor
 
 @ConfigurationProperties(prefix = "podpirate")
 data class PodPirateProperties(
@@ -39,8 +40,9 @@ class AppConfig {
         val executor = ThreadPoolTaskExecutor()
         executor.corePoolSize = 4
         executor.maxPoolSize = 8
-        executor.queueCapacity = 100
+        executor.queueCapacity = 1000
         executor.setThreadNamePrefix("podpirate-")
+        executor.setRejectedExecutionHandler(ThreadPoolExecutor.CallerRunsPolicy())
         executor.initialize()
         return executor
     }
