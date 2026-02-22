@@ -1,8 +1,21 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, Episode, AdSegment, TranscriptionSegment } from '../api/client';
 import TranscriptionView from '../components/TranscriptionView';
 import AudioPlayer from '../components/AudioPlayer';
+
+type SelectingAd = null | 'picking-start' | 'picking-end';
+
+interface PendingAd {
+  startTime: number;
+  endTime: number;
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 export default function EpisodePlayerPage() {
   const { id } = useParams<{ id: string }>();
@@ -11,8 +24,14 @@ export default function EpisodePlayerPage() {
   const [adSegments, setAdSegments] = useState<AdSegment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [useProcessed, setUseProcessed] = useState(true);
-  const [editingAds, setEditingAds] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Ad selection state
+  const [selectingAd, setSelectingAd] = useState<SelectingAd>(null);
+  const [rangeStart, setRangeStart] = useState<TranscriptionSegment | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<TranscriptionSegment | null>(null);
+  const [pendingAd, setPendingAd] = useState<PendingAd | null>(null);
+  const [playingPreview, setPlayingPreview] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -29,21 +48,38 @@ export default function EpisodePlayerPage() {
       .catch(() => setAdSegments([]));
   }, [id]);
 
-  async function handleSaveAdSegments(updated: AdSegment[]) {
-    if (!id) return;
-    const saved = await api.updateAdSegments(parseInt(id), updated);
-    setAdSegments(saved);
-  }
+  // Escape key cancels selection
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setSelectingAd(null);
+      setRangeStart(null);
+      setRangeEnd(null);
+    }
+  }, []);
 
-  async function handleReprocess() {
-    if (!id) return;
-    await api.reprocessEpisode(parseInt(id));
-  }
+  useEffect(() => {
+    if (selectingAd) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [selectingAd, handleKeyDown]);
 
-  async function handleRedetectPodcast() {
-    if (!episode?.podcast?.id) return;
-    await api.redetectPodcastAds(episode.podcast.id);
-  }
+  // Stop preview playback at endTime
+  useEffect(() => {
+    if (!playingPreview || !pendingAd) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    function onTimeUpdate() {
+      if (audio && pendingAd && audio.currentTime >= pendingAd.endTime) {
+        audio.pause();
+        setPlayingPreview(false);
+      }
+    }
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    return () => audio.removeEventListener('timeupdate', onTimeUpdate);
+  }, [playingPreview, pendingAd]);
 
   function handleSeek(time: number) {
     if (audioRef.current) {
@@ -51,39 +87,91 @@ export default function EpisodePlayerPage() {
     }
   }
 
-  async function handleToggleAd(start: number, end: number, isAd: boolean) {
-    if (!id) return;
-    let updated: AdSegment[];
-
-    if (isAd) {
-      // Add new MANUAL segment, merging with any overlapping ones
-      const newSeg: AdSegment = { startTime: start, endTime: end, source: 'MANUAL', confirmed: true };
-      const nonOverlapping = adSegments.filter(s => s.endTime < start || s.startTime > end);
-      const overlapping = adSegments.filter(s => s.endTime >= start && s.startTime <= end);
-      const mergedStart = Math.min(start, ...overlapping.map(s => s.startTime));
-      const mergedEnd = Math.max(end, ...overlapping.map(s => s.endTime));
-      updated = [...nonOverlapping, { ...newSeg, startTime: mergedStart, endTime: mergedEnd }]
-        .sort((a, b) => a.startTime - b.startTime);
+  function handleSelectSegment(which: 'start' | 'end', seg: TranscriptionSegment) {
+    if (which === 'start') {
+      setRangeStart(seg);
+      setRangeEnd(null);
+      setSelectingAd('picking-end');
     } else {
-      // Remove/trim segments that overlap the given range
-      updated = adSegments.flatMap(seg => {
-        if (seg.startTime >= start && seg.endTime <= end) return []; // fully contained — remove
-        if (seg.endTime <= start || seg.startTime >= end) return [seg]; // no overlap — keep
-        const parts: AdSegment[] = [];
-        if (seg.startTime < start) parts.push({ ...seg, endTime: start });
-        if (seg.endTime > end) parts.push({ ...seg, startTime: end });
-        return parts;
-      });
+      setRangeEnd(seg);
     }
+  }
 
+  function handleFinish() {
+    if (!rangeStart || !rangeEnd) return;
+    const startTime = Math.min(rangeStart.start, rangeEnd.start);
+    const endTime = Math.max(rangeStart.end, rangeEnd.end);
+    setPendingAd({ startTime, endTime });
+    setSelectingAd(null);
+  }
+
+  function handleCancel() {
+    setPendingAd(null);
+    setSelectingAd(null);
+    setRangeStart(null);
+    setRangeEnd(null);
+    setPlayingPreview(false);
+  }
+
+  function handlePlayPreview() {
+    if (!pendingAd || !audioRef.current) return;
+    if (playingPreview) {
+      audioRef.current.pause();
+      setPlayingPreview(false);
+    } else {
+      audioRef.current.currentTime = pendingAd.startTime;
+      audioRef.current.play();
+      setPlayingPreview(true);
+    }
+  }
+
+  function addAdSegment(start: number, end: number): AdSegment[] {
+    const newSeg: AdSegment = { startTime: start, endTime: end, source: 'MANUAL', confirmed: true };
+    const nonOverlapping = adSegments.filter(s => s.endTime < start || s.startTime > end);
+    const overlapping = adSegments.filter(s => s.endTime >= start && s.startTime <= end);
+    const mergedStart = Math.min(start, ...overlapping.map(s => s.startTime));
+    const mergedEnd = Math.max(end, ...overlapping.map(s => s.endTime));
+    return [...nonOverlapping, { ...newSeg, startTime: mergedStart, endTime: mergedEnd }]
+      .sort((a, b) => a.startTime - b.startTime);
+  }
+
+  async function handleDeleteFromEpisode() {
+    if (!id || !pendingAd) return;
+    const updated = addAdSegment(pendingAd.startTime, pendingAd.endTime);
     setAdSegments(updated);
+    handleCancel();
     const saved = await api.updateAdSegments(parseInt(id), updated);
     setAdSegments(saved);
+    await api.reprocessEpisode(parseInt(id));
+  }
+
+  async function handleDeleteFromAll() {
+    if (!id || !pendingAd || !episode?.podcast?.id) return;
+    const updated = addAdSegment(pendingAd.startTime, pendingAd.endTime);
+    setAdSegments(updated);
+    handleCancel();
+    const saved = await api.updateAdSegments(parseInt(id), updated);
+    setAdSegments(saved);
+    await api.reprocessEpisode(parseInt(id));
+    await api.redetectPodcastAds(episode.podcast.id);
+  }
+
+  async function handleReprocess() {
+    if (!id) return;
+    await api.reprocessEpisode(parseInt(id));
   }
 
   if (!episode) return <p className="text-gray-400">Loading...</p>;
 
   const audioSrc = id ? api.audioUrl(parseInt(id), useProcessed) : '';
+
+  // Get transcript text for the pending ad range
+  const pendingAdText = pendingAd
+    ? segments
+        .filter(s => s.start >= pendingAd.startTime && s.end <= pendingAd.endTime)
+        .map(s => s.text)
+        .join(' ')
+    : '';
 
   return (
     <div>
@@ -142,33 +230,38 @@ export default function EpisodePlayerPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <div className="flex items-center gap-3 mb-3">
-            <h2 className="text-lg font-semibold">Transcript</h2>
-            <button
-              onClick={() => setEditingAds(e => !e)}
-              className={`px-3 py-1 rounded text-sm ${
-                editingAds ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-700 hover:bg-gray-600'
-              }`}
-            >
-              {editingAds ? 'Done Editing' : 'Edit Ads'}
-            </button>
-          </div>
+          <h2 className="text-lg font-semibold mb-3">Transcript</h2>
           <TranscriptionView
             segments={segments}
             adSegments={adSegments}
             currentTime={currentTime}
             onSeek={handleSeek}
-            editable={editingAds}
-            onToggleAd={handleToggleAd}
+            selectingAd={selectingAd}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onSelectSegment={handleSelectSegment}
+            onFinish={handleFinish}
           />
         </div>
         <div>
           <h2 className="text-lg font-semibold mb-3">Ad Segments</h2>
-          <AdSegmentEditor
+          <AdSegmentPanel
             adSegments={adSegments}
-            onSave={handleSaveAdSegments}
-            onReprocess={handleReprocess}
-            onRedetectPodcast={episode?.podcast?.id ? handleRedetectPodcast : undefined}
+            selectingAd={selectingAd}
+            pendingAd={pendingAd}
+            pendingAdText={pendingAdText}
+            playingPreview={playingPreview}
+            hasPodcast={!!episode?.podcast?.id}
+            onAddSegment={() => {
+              setSelectingAd('picking-start');
+              setRangeStart(null);
+              setRangeEnd(null);
+              setPendingAd(null);
+            }}
+            onPlayPreview={handlePlayPreview}
+            onDeleteFromEpisode={handleDeleteFromEpisode}
+            onDeleteFromAll={handleDeleteFromAll}
+            onCancel={handleCancel}
           />
         </div>
       </div>
@@ -176,109 +269,112 @@ export default function EpisodePlayerPage() {
   );
 }
 
-function AdSegmentEditor({
+function AdSegmentPanel({
   adSegments,
-  onSave,
-  onReprocess,
-  onRedetectPodcast,
+  selectingAd,
+  pendingAd,
+  pendingAdText,
+  playingPreview,
+  hasPodcast,
+  onAddSegment,
+  onPlayPreview,
+  onDeleteFromEpisode,
+  onDeleteFromAll,
+  onCancel,
 }: {
   adSegments: AdSegment[];
-  onSave: (segments: AdSegment[]) => void;
-  onReprocess: () => void;
-  onRedetectPodcast?: () => Promise<void>;
+  selectingAd: SelectingAd;
+  pendingAd: PendingAd | null;
+  pendingAdText: string;
+  playingPreview: boolean;
+  hasPodcast: boolean;
+  onAddSegment: () => void;
+  onPlayPreview: () => void;
+  onDeleteFromEpisode: () => void;
+  onDeleteFromAll: () => void;
+  onCancel: () => void;
 }) {
-  const [editing, setEditing] = useState<AdSegment[]>([]);
-  const [dirty, setDirty] = useState(false);
-
-  useEffect(() => {
-    setEditing(adSegments.map(s => ({ ...s })));
-    setDirty(false);
-  }, [adSegments]);
-
-  function updateSegment(index: number, field: 'startTime' | 'endTime', value: string) {
-    const updated = [...editing];
-    updated[index] = { ...updated[index], [field]: parseFloat(value) || 0 };
-    setEditing(updated);
-    setDirty(true);
-  }
-
-  function addSegment() {
-    setEditing([...editing, { startTime: 0, endTime: 0, source: 'MANUAL', confirmed: true }]);
-    setDirty(true);
-  }
-
-  function removeSegment(index: number) {
-    setEditing(editing.filter((_, i) => i !== index));
-    setDirty(true);
-  }
-
-  function handleSave() {
-    onSave(editing);
-    setDirty(false);
-  }
-
-  async function handleSaveAndRedetect() {
-    onSave(editing);
-    setDirty(false);
-    if (onRedetectPodcast) await onRedetectPodcast();
-  }
-
   return (
     <div className="space-y-3">
-      {editing.length === 0 && (
+      {adSegments.length === 0 && !pendingAd && (
         <p className="text-gray-500 text-sm">No ad segments detected</p>
       )}
-      {editing.map((seg, i) => (
-        <div key={i} className="flex items-center gap-2 bg-gray-800 p-2 rounded">
-          <input
-            type="number"
-            step="0.1"
-            value={seg.startTime}
-            onChange={e => updateSegment(i, 'startTime', e.target.value)}
-            className="w-24 px-2 py-1 bg-gray-700 rounded text-sm"
-            placeholder="Start (s)"
-          />
+      {adSegments.map((seg, i) => (
+        <div key={i} className="flex items-center gap-2 bg-gray-800 p-2 rounded text-sm">
+          <span>{formatTime(seg.startTime)}</span>
           <span className="text-gray-500">→</span>
-          <input
-            type="number"
-            step="0.1"
-            value={seg.endTime}
-            onChange={e => updateSegment(i, 'endTime', e.target.value)}
-            className="w-24 px-2 py-1 bg-gray-700 rounded text-sm"
-            placeholder="End (s)"
-          />
-          <span className="text-xs text-gray-500">{seg.source}</span>
-          <button onClick={() => removeSegment(i)} className="text-red-400 hover:text-red-300 ml-auto text-sm">
-            Remove
-          </button>
+          <span>{formatTime(seg.endTime)}</span>
+          <span className="text-xs text-gray-500 ml-auto">{seg.source}</span>
         </div>
       ))}
-      <div className="flex gap-2">
-        <button onClick={addSegment} className="px-3 py-1.5 bg-gray-700 rounded text-sm hover:bg-gray-600">
-          + Add Segment
-        </button>
-        {dirty && (
-          <>
-            <button onClick={handleSave} className="px-3 py-1.5 bg-purple-600 rounded text-sm hover:bg-purple-700">
-              Save Changes
-            </button>
+
+      {pendingAd && (
+        <div className="bg-yellow-900/30 border border-yellow-600/50 rounded p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-yellow-200">Pending ad segment</span>
+            <span className="text-xs text-yellow-400">
+              {formatTime(pendingAd.startTime)} → {formatTime(pendingAd.endTime)}
+            </span>
+          </div>
+          {pendingAdText && (
+            <p className="text-xs text-gray-300 max-h-24 overflow-y-auto leading-relaxed">
+              {pendingAdText}
+            </p>
+          )}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => { handleSave(); onReprocess(); }}
+              onClick={onPlayPreview}
+              className="px-2 py-1 bg-gray-700 rounded text-sm hover:bg-gray-600"
+              title={playingPreview ? 'Stop preview' : 'Play ad audio'}
+            >
+              {playingPreview ? '⏹ Stop' : '▶ Play'}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={onDeleteFromEpisode}
               className="px-3 py-1.5 bg-green-600 rounded text-sm hover:bg-green-700"
             >
-              Save & Reprocess
+              Delete from this episode
             </button>
-            {onRedetectPodcast && (
+            {hasPodcast && (
               <button
-                onClick={handleSaveAndRedetect}
+                onClick={onDeleteFromAll}
                 className="px-3 py-1.5 bg-blue-600 rounded text-sm hover:bg-blue-700"
               >
-                Save & Re-detect Podcast
+                Delete from all episodes
               </button>
             )}
-          </>
-        )}
-      </div>
+            <button
+              onClick={onCancel}
+              className="px-3 py-1.5 bg-gray-700 rounded text-sm hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!pendingAd && !selectingAd && (
+        <button
+          onClick={onAddSegment}
+          className="px-3 py-1.5 bg-gray-700 rounded text-sm hover:bg-gray-600"
+        >
+          + Add Segment
+        </button>
+      )}
+
+      {selectingAd && (
+        <div className="text-sm text-yellow-300">
+          Selecting ad range in transcript...
+          <button
+            onClick={onCancel}
+            className="ml-3 px-2 py-0.5 bg-gray-700 rounded text-xs hover:bg-gray-600 text-gray-300"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
