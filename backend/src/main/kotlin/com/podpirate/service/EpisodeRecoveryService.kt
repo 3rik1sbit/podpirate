@@ -1,5 +1,6 @@
 package com.podpirate.service
 
+import com.podpirate.model.Episode
 import com.podpirate.model.EpisodeStatus
 import com.podpirate.repository.EpisodeRepository
 import org.slf4j.LoggerFactory
@@ -7,6 +8,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.nio.file.Path
 
 @Service
 class EpisodeRecoveryService(
@@ -29,10 +31,10 @@ class EpisodeRecoveryService(
             episodeRepository.save(ep.copy(status = EpisodeStatus.PENDING))
         }
         for (ep in transcribing) {
-            episodeRepository.save(ep.copy(status = EpisodeStatus.DOWNLOADED))
+            episodeRepository.save(ep.copy(status = recoverStatus(ep)))
         }
         for (ep in detectingAds) {
-            episodeRepository.save(ep.copy(status = EpisodeStatus.DOWNLOADED))
+            episodeRepository.save(ep.copy(status = recoverStatus(ep)))
         }
 
         if (downloading.isNotEmpty() || transcribing.isNotEmpty() || detectingAds.isNotEmpty()) {
@@ -51,6 +53,15 @@ class EpisodeRecoveryService(
         if (downloaded.isNotEmpty()) {
             log.info("Resuming transcription for ${downloaded.size} downloaded episodes")
             downloaded.forEach { transcriptionService.transcribeAsync(it.id) }
+        }
+    }
+
+    private fun recoverStatus(ep: Episode): EpisodeStatus {
+        val path = ep.localAudioPath
+        return if (path != null && Path.of(path).toFile().exists()) {
+            EpisodeStatus.DOWNLOADED
+        } else {
+            EpisodeStatus.PENDING
         }
     }
 }
