@@ -17,6 +17,7 @@ data class FeedEpisode(
     val publishedAt: Instant?,
     val guid: String?,
     val duration: Long?,
+    val imageUrl: String?,
 )
 
 @Service
@@ -41,6 +42,7 @@ class RssFeedService {
                     publishedAt = entry.publishedDate?.toInstant(),
                     guid = entry.uri,
                     duration = parseDuration(entry.foreignMarkup),
+                    imageUrl = parseImageUrl(entry.foreignMarkup),
                 )
             }
         } catch (e: Exception) {
@@ -58,6 +60,10 @@ class RssFeedService {
             log.error("Failed to fetch podcast metadata: $feedUrl", e)
             null
         }
+    }
+
+    private fun parseImageUrl(foreignMarkup: List<org.jdom2.Element>): String? {
+        return foreignMarkup.find { it.name == "image" }?.getAttributeValue("href")
     }
 
     private fun parseDuration(foreignMarkup: List<org.jdom2.Element>): Long? {

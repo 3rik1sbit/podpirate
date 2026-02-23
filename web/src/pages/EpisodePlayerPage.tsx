@@ -175,7 +175,21 @@ export default function EpisodePlayerPage() {
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold mb-2">{episode.title}</h1>
+      <div className="flex items-start gap-4 mb-2">
+        {(episode.imageUrl || episode.podcast?.artworkUrl) && (
+          <img
+            src={episode.imageUrl ?? episode.podcast?.artworkUrl ?? ''}
+            alt=""
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover shrink-0"
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">{episode.title}</h1>
+          {episode.podcast?.title && (
+            <p className="text-gray-400 text-sm">{episode.podcast.title}</p>
+          )}
+        </div>
+      </div>
       <div className="flex items-center gap-3 mb-1">
         <p className="text-gray-400 text-sm">
           Status: <span className={`font-medium ${episode.status === 'READY' ? 'text-green-400' : 'text-yellow-400'}`}>

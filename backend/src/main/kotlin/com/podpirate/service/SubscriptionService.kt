@@ -85,6 +85,7 @@ class SubscriptionService(
                     audioUrl = feedEp.audioUrl,
                     guid = feedEp.guid,
                     duration = feedEp.duration,
+                    imageUrl = feedEp.imageUrl,
                     status = EpisodeStatus.PENDING,
                 )
             )

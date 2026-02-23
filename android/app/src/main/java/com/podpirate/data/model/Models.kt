@@ -31,6 +31,7 @@ data class Episode(
     val publishedAt: String? = null,
     val audioUrl: String,
     val duration: Long? = null,
+    val imageUrl: String? = null,
     val status: String = "PENDING",
     val podcast: Podcast? = null,
 )

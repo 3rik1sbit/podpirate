@@ -28,6 +28,7 @@ export interface Episode {
   localAudioPath: string | null;
   processedAudioPath: string | null;
   duration: number | null;
+  imageUrl: string | null;
   priority: number;
   status: string;
   podcast?: Podcast;

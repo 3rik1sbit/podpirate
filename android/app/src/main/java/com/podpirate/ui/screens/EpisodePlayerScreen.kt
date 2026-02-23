@@ -15,10 +15,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.podpirate.PlaybackController
 import com.podpirate.data.api.ApiClient
@@ -89,14 +92,38 @@ fun EpisodePlayerScreen(
         }
 
         episode?.let { ep ->
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Text(ep.title, style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Status: ${ep.status}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (ep.status == "READY") Color(0xFF4ADE80) else Color(0xFFFACC15),
-                )
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                val artworkUrl = ep.imageUrl ?: ep.podcast?.artworkUrl
+                if (artworkUrl != null) {
+                    AsyncImage(
+                        model = artworkUrl,
+                        contentDescription = "Episode artwork",
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(ep.title, style = MaterialTheme.typography.titleLarge)
+                    ep.podcast?.title?.let { podcastTitle ->
+                        Text(
+                            podcastTitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Status: ${ep.status}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (ep.status == "READY") Color(0xFF4ADE80) else Color(0xFFFACC15),
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))

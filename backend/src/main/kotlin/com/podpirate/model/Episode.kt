@@ -39,6 +39,8 @@ data class Episode(
 
     val duration: Long? = null,
 
+    val imageUrl: String? = null,
+
     @Column(unique = true)
     val guid: String? = null,
 

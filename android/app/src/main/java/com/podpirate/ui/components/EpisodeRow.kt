@@ -9,9 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.podpirate.data.model.Episode
 import java.time.Instant
 import java.time.ZoneId
@@ -40,6 +43,19 @@ fun EpisodeRow(episode: Episode, onClick: () -> Unit, onAddToQueue: (() -> Unit)
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val artworkUrl = episode.imageUrl ?: episode.podcast?.artworkUrl
+            if (artworkUrl != null) {
+                AsyncImage(
+                    model = artworkUrl,
+                    contentDescription = "Episode artwork",
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(6.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     episode.title,
@@ -47,6 +63,16 @@ fun EpisodeRow(episode: Episode, onClick: () -> Unit, onAddToQueue: (() -> Unit)
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+
+                episode.podcast?.title?.let { podcastTitle ->
+                    Text(
+                        podcastTitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     episode.publishedAt?.let { raw ->
