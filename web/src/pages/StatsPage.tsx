@@ -127,6 +127,8 @@ export default function StatsPage() {
   const [activeEpisodes, setActiveEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [aiPaused, setAiPaused] = useState<boolean | null>(null);
+  const [togglingAi, setTogglingAi] = useState(false);
 
   const fetchStats = () => {
     api.getStats()
@@ -141,12 +143,29 @@ export default function StatsPage() {
       .catch(() => {});
   };
 
+  const fetchAiPaused = () => {
+    api.getAiPaused()
+      .then(data => setAiPaused(data.paused))
+      .catch(() => {});
+  };
+
+  const toggleAiPaused = () => {
+    if (aiPaused === null) return;
+    setTogglingAi(true);
+    api.setAiPaused(!aiPaused)
+      .then(data => setAiPaused(data.paused))
+      .catch(() => {})
+      .finally(() => setTogglingAi(false));
+  };
+
   useEffect(() => {
     fetchStats();
     fetchActive();
+    fetchAiPaused();
     const statsInterval = setInterval(fetchStats, 30000);
     const activeInterval = setInterval(fetchActive, 5000);
-    return () => { clearInterval(statsInterval); clearInterval(activeInterval); };
+    const aiInterval = setInterval(fetchAiPaused, 30000);
+    return () => { clearInterval(statsInterval); clearInterval(activeInterval); clearInterval(aiInterval); };
   }, []);
 
   if (loading) return <p className="text-gray-400">Loading stats...</p>;
@@ -164,7 +183,23 @@ export default function StatsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Stats</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Stats</h1>
+        {aiPaused !== null && (
+          <button
+            onClick={toggleAiPaused}
+            disabled={togglingAi}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              aiPaused
+                ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 hover:bg-yellow-600/30'
+                : 'bg-green-600/20 text-green-400 border border-green-600/50 hover:bg-green-600/30'
+            } disabled:opacity-50`}
+          >
+            <div className={`w-2 h-2 rounded-full ${aiPaused ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`} />
+            {togglingAi ? 'Updating...' : aiPaused ? 'AI Paused' : 'AI Active'}
+          </button>
+        )}
+      </div>
 
       {/* Pipeline Progress */}
       <div className="mb-8">

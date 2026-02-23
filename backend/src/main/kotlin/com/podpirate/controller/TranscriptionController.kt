@@ -64,6 +64,11 @@ class TranscriptionController(
             )
         })
 
+        // Trigger async hint extraction if manual segments were saved
+        if (segments.any { it.source == "MANUAL" }) {
+            adDetectionService.extractAdHintsAsync(episode.podcast.id)
+        }
+
         return ResponseEntity.ok(saved)
     }
 

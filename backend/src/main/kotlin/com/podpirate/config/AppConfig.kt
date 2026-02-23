@@ -18,7 +18,7 @@ data class PodPirateProperties(
     val processedDir: String = "/data/processed",
     val whisperUrl: String = "http://whisper-service:8000",
     val ollamaUrl: String = "http://ollama:11434",
-    val ollamaModel: String = "llama3.2",
+    val ollamaModel: String = "llama3.1:8b",
 )
 
 @Configuration

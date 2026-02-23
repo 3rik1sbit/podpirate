@@ -28,6 +28,9 @@ data class Podcast(
 
     val createdAt: Instant = Instant.now(),
 
+    @Column(columnDefinition = "TEXT")
+    val adDetectionHints: String? = null,
+
     @JsonIgnore
     @OneToMany(mappedBy = "podcast", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     val episodes: MutableList<Episode> = mutableListOf(),

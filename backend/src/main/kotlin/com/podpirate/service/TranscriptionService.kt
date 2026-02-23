@@ -22,6 +22,7 @@ class TranscriptionService(
     private val episodeRepository: EpisodeRepository,
     private val transcriptionRepository: TranscriptionRepository,
     private val adDetectionService: AdDetectionService,
+    private val systemConfigService: SystemConfigService,
     private val webClient: WebClient,
     private val objectMapper: ObjectMapper,
     private val properties: PodPirateProperties,
@@ -31,6 +32,10 @@ class TranscriptionService(
 
     @Async("aiExecutor")
     fun transcribeAsync(episodeId: Long) {
+        if (systemConfigService.isAiPaused()) {
+            log.info("AI is paused, skipping transcription for episode $episodeId")
+            return
+        }
         log.info("AI thread starting transcription for episode $episodeId")
         try {
             transcribe(episodeId)

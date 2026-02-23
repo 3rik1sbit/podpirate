@@ -155,6 +155,18 @@ export const api = {
   getStats() {
     return fetchJson<StatsResponse>(`${API_BASE}/stats`);
   },
+
+  getAiPaused() {
+    return fetchJson<{ paused: boolean }>(`${API_BASE}/config/ai-paused`);
+  },
+
+  setAiPaused(paused: boolean) {
+    return fetchJson<{ paused: boolean }>(`${API_BASE}/config/ai-paused`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paused }),
+    });
+  },
 };
 
 export interface EpisodeSummary {
