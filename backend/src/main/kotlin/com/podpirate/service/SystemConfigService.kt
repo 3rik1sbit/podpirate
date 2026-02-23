@@ -1,5 +1,6 @@
 package com.podpirate.service
 
+import com.podpirate.config.PodPirateProperties
 import com.podpirate.model.EpisodeStatus
 import com.podpirate.model.SystemConfig
 import com.podpirate.repository.EpisodeRepository
@@ -8,6 +9,8 @@ import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Service
+import org.springframework.web.reactive.function.client.WebClient
+import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Service
@@ -15,6 +18,8 @@ class SystemConfigService(
     private val systemConfigRepository: SystemConfigRepository,
     private val episodeRepository: EpisodeRepository,
     private val applicationContext: ApplicationContext,
+    private val properties: PodPirateProperties,
+    private val webClient: WebClient,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -32,12 +37,47 @@ class SystemConfigService(
     fun isAiPaused(): Boolean = aiPaused.get()
 
     fun setAiPaused(paused: Boolean) {
+        if (!paused) {
+            checkAiServicesAvailable()
+        }
+
         aiPaused.set(paused)
         systemConfigRepository.save(SystemConfig(key = "ai_paused", value = paused.toString()))
         log.info("AI paused set to $paused")
 
         if (!paused) {
             resumeStuckEpisodes()
+        }
+    }
+
+    private fun checkAiServicesAvailable() {
+        val timeout = Duration.ofSeconds(3)
+        val errors = mutableListOf<String>()
+
+        try {
+            webClient.get()
+                .uri("${properties.whisperUrl}/health")
+                .retrieve()
+                .toBodilessEntity()
+                .block(timeout)
+        } catch (e: Exception) {
+            log.warn("Whisper service health check failed: ${e.message}")
+            errors.add("Whisper service unreachable at ${properties.whisperUrl}")
+        }
+
+        try {
+            webClient.get()
+                .uri("${properties.ollamaUrl}/api/tags")
+                .retrieve()
+                .toBodilessEntity()
+                .block(timeout)
+        } catch (e: Exception) {
+            log.warn("Ollama service health check failed: ${e.message}")
+            errors.add("Ollama service unreachable at ${properties.ollamaUrl}")
+        }
+
+        if (errors.isNotEmpty()) {
+            throw RuntimeException("AI services unavailable: ${errors.joinToString("; ")}")
         }
     }
 

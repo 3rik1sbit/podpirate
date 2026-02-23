@@ -1,6 +1,8 @@
 package com.podpirate.controller
 
 import com.podpirate.service.SystemConfigService
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -15,9 +17,15 @@ class SystemConfigController(
     }
 
     @PostMapping("/ai-paused")
-    fun setAiPaused(@RequestBody body: Map<String, Boolean>): Map<String, Boolean> {
+    fun setAiPaused(@RequestBody body: Map<String, Boolean>): ResponseEntity<Map<String, Any>> {
         val paused = body["paused"] ?: false
-        systemConfigService.setAiPaused(paused)
-        return mapOf("paused" to systemConfigService.isAiPaused())
+        return try {
+            systemConfigService.setAiPaused(paused)
+            ResponseEntity.ok(mapOf("paused" to systemConfigService.isAiPaused()))
+        } catch (e: RuntimeException) {
+            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                mapOf("error" to "AI services unavailable", "details" to (e.message ?: "Unknown error"))
+            )
+        }
     }
 }

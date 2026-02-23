@@ -129,6 +129,7 @@ export default function StatsPage() {
   const [error, setError] = useState<string | null>(null);
   const [aiPaused, setAiPaused] = useState<boolean | null>(null);
   const [togglingAi, setTogglingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const fetchStats = () => {
     api.getStats()
@@ -152,9 +153,20 @@ export default function StatsPage() {
   const toggleAiPaused = () => {
     if (aiPaused === null) return;
     setTogglingAi(true);
+    setAiError(null);
     api.setAiPaused(!aiPaused)
-      .then(data => setAiPaused(data.paused))
-      .catch(() => {})
+      .then(data => {
+        if ('error' in data) {
+          setAiError(data.details);
+          setTimeout(() => setAiError(null), 5000);
+        } else {
+          setAiPaused(data.paused);
+        }
+      })
+      .catch(() => {
+        setAiError('Failed to update AI state');
+        setTimeout(() => setAiError(null), 5000);
+      })
       .finally(() => setTogglingAi(false));
   };
 
@@ -186,18 +198,23 @@ export default function StatsPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Stats</h1>
         {aiPaused !== null && (
-          <button
-            onClick={toggleAiPaused}
-            disabled={togglingAi}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              aiPaused
-                ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 hover:bg-yellow-600/30'
-                : 'bg-green-600/20 text-green-400 border border-green-600/50 hover:bg-green-600/30'
-            } disabled:opacity-50`}
-          >
-            <div className={`w-2 h-2 rounded-full ${aiPaused ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`} />
-            {togglingAi ? 'Updating...' : aiPaused ? 'AI Paused' : 'AI Active'}
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={toggleAiPaused}
+              disabled={togglingAi}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                aiPaused
+                  ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 hover:bg-yellow-600/30'
+                  : 'bg-green-600/20 text-green-400 border border-green-600/50 hover:bg-green-600/30'
+              } disabled:opacity-50`}
+            >
+              <div className={`w-2 h-2 rounded-full ${aiPaused ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`} />
+              {togglingAi ? 'Updating...' : aiPaused ? 'AI Paused' : 'AI Active'}
+            </button>
+            {aiError && (
+              <div className="text-xs text-red-400 max-w-xs text-right">{aiError}</div>
+            )}
+          </div>
         )}
       </div>
 
