@@ -4,26 +4,121 @@
       <stop offset="0%" style="stop-color:#1a1a2e"/>
       <stop offset="100%" style="stop-color:#16213e"/>
     </linearGradient>
+    <linearGradient id="purple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9333ea"/>
+      <stop offset="100%" style="stop-color:#7e22ce"/>
+    </linearGradient>
   </defs>
 
   <!-- Background circle -->
   <circle cx="256" cy="256" r="250" fill="url(#bg)" stroke="#9333ea" stroke-width="4"/>
 
+  <!-- Crossed microphones (bones) behind skull -->
+  <g stroke="#c084fc" stroke-width="10" stroke-linecap="round" fill="none">
+    <!-- Left mic shaft -->
+    <line x1="120" y1="380" x2="280" y2="160"/>
+    <!-- Right mic shaft -->
+    <line x1="392" y1="380" x2="232" y2="160"/>
+  </g>
+  <!-- Mic heads -->
+  <g fill="#c084fc">
+    <!-- Left mic head -->
+    <ellipse cx="290" cy="148" rx="18" ry="28" transform="rotate(-55 290 148)"/>
+    <line x1="275" y1="140" x2="275" y2="155" stroke="#1a1a2e" stroke-width="2"/>
+    <line x1="285" y1="132" x2="285" y2="147" stroke="#1a1a2e" stroke-width="2"/>
+    <line x1="295" y1="130" x2="295" y2="145" stroke="#1a1a2e" stroke-width="2"/>
+    <line x1="305" y1="135" x2="305" y2="150" stroke="#1a1a2e" stroke-width="2"/>
+    <!-- Right mic head -->
+    <ellipse cx="222" cy="148" rx="18" ry="28" transform="rotate(55 222 148)"/>
+    <line x1="207" y1="135" x2="207" y2="150" stroke="#1a1a2e" stroke-width="2"/>
+    <line x1="217" y1="130" x2="217" y2="145" stroke="#1a1a2e" stroke-width="2"/>
+    <line x1="227" y1="132" x2="227" y2="147" stroke="#1a1a2e" stroke-width="2"/>
+    <line x1="237" y1="140" x2="237" y2="155" stroke="#1a1a2e" stroke-width="2"/>
+  </g>
+
   <!-- Skull -->
-  <ellipse cx="256" cy="270" rx="100" ry="110" fill="#e8dcc8"/>
-  <ellipse cx="256" cy="330" rx="65" ry="38" fill="#e8dcc8"/>
+  <g>
+    <!-- Skull shape -->
+    <ellipse cx="256" cy="255" rx="95" ry="105" fill="#e8dcc8"/>
+    <!-- Skull bottom / jaw area -->
+    <ellipse cx="256" cy="310" rx="65" ry="40" fill="#e8dcc8"/>
 
-  <!-- Eye sockets with glow -->
-  <ellipse cx="218" cy="260" rx="30" ry="34" fill="#1a1a2e"/>
-  <ellipse cx="294" cy="260" rx="30" ry="34" fill="#1a1a2e"/>
-  <ellipse cx="218" cy="263" rx="15" ry="17" fill="#9333ea" opacity="0.8"/>
-  <ellipse cx="294" cy="263" rx="15" ry="17" fill="#9333ea" opacity="0.8"/>
+    <!-- Eye sockets -->
+    <ellipse cx="222" cy="245" rx="28" ry="32" fill="#1a1a2e"/>
+    <ellipse cx="290" cy="245" rx="28" ry="32" fill="#1a1a2e"/>
 
-  <!-- Nose -->
-  <path d="M248 298 L256 312 L264 298 Z" fill="#1a1a2e"/>
+    <!-- Eye glow (purple) -->
+    <ellipse cx="222" cy="248" rx="14" ry="16" fill="#9333ea" opacity="0.8"/>
+    <ellipse cx="290" cy="248" rx="14" ry="16" fill="#9333ea" opacity="0.8"/>
+    <!-- Eye highlights -->
+    <ellipse cx="216" cy="242" rx="5" ry="6" fill="#c084fc" opacity="0.6"/>
+    <ellipse cx="284" cy="242" rx="5" ry="6" fill="#c084fc" opacity="0.6"/>
+
+    <!-- Nose -->
+    <path d="M248 280 L256 295 L264 280 Z" fill="#1a1a2e"/>
+
+    <!-- Teeth -->
+    <g fill="#1a1a2e">
+      <rect x="232" y="320" width="10" height="16" rx="2"/>
+      <rect x="245" y="320" width="10" height="16" rx="2"/>
+      <rect x="258" y="320" width="10" height="16" rx="2"/>
+      <rect x="271" y="320" width="10" height="16" rx="2"/>
+    </g>
+
+    <!-- Skull cracks for character -->
+    <path d="M230 185 L240 210 L235 220" fill="none" stroke="#d4c4a8" stroke-width="2"/>
+    <path d="M285 190 L278 205" fill="none" stroke="#d4c4a8" stroke-width="2"/>
+  </g>
 
   <!-- Headphones -->
-  <path d="M145 255 Q148 148 256 130 Q364 148 367 255" fill="none" stroke="#9333ea" stroke-width="16" stroke-linecap="round"/>
-  <rect x="125" y="240" width="35" height="58" rx="12" fill="#9333ea"/>
-  <rect x="352" y="240" width="35" height="58" rx="12" fill="#9333ea"/>
+  <g>
+    <!-- Headband -->
+    <path d="M148 240 Q150 140 256 125 Q362 140 364 240" fill="none" stroke="#9333ea" stroke-width="14" stroke-linecap="round"/>
+    <!-- Headband highlight -->
+    <path d="M165 230 Q167 155 256 142 Q345 155 347 230" fill="none" stroke="#a855f7" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- Left ear cup -->
+    <rect x="130" y="225" width="35" height="55" rx="10" fill="#9333ea"/>
+    <rect x="136" y="231" width="23" height="43" rx="7" fill="#7e22ce"/>
+    <!-- Left ear cushion -->
+    <rect x="122" y="230" width="15" height="45" rx="7" fill="#6b21a8"/>
+
+    <!-- Right ear cup -->
+    <rect x="347" y="225" width="35" height="55" rx="10" fill="#9333ea"/>
+    <rect x="353" y="231" width="23" height="43" rx="7" fill="#7e22ce"/>
+    <!-- Right ear cushion -->
+    <rect x="375" y="230" width="15" height="45" rx="7" fill="#6b21a8"/>
+  </g>
+
+  <!-- Sound waves from left cup -->
+  <g stroke="#c084fc" stroke-width="2.5" fill="none" opacity="0.5">
+    <path d="M115 252 Q105 252 105 240 Q105 228 115 228"/>
+    <path d="M108 260 Q92 255 92 240 Q92 225 108 220"/>
+  </g>
+  <!-- Sound waves from right cup -->
+  <g stroke="#c084fc" stroke-width="2.5" fill="none" opacity="0.5">
+    <path d="M397 252 Q407 252 407 240 Q407 228 397 228"/>
+    <path d="M404 260 Q420 255 420 240 Q420 225 404 220"/>
+  </g>
+
+  <!-- Waveform at bottom -->
+  <g stroke="#9333ea" stroke-width="3" stroke-linecap="round" opacity="0.6">
+    <line x1="140" y1="420" x2="140" y2="430"/>
+    <line x1="155" y1="412" x2="155" y2="438"/>
+    <line x1="170" y1="405" x2="170" y2="445"/>
+    <line x1="185" y1="410" x2="185" y2="440"/>
+    <line x1="200" y1="400" x2="200" y2="450"/>
+    <line x1="215" y1="408" x2="215" y2="442"/>
+    <line x1="230" y1="395" x2="230" y2="455"/>
+    <line x1="245" y1="402" x2="245" y2="448"/>
+    <line x1="260" y1="390" x2="260" y2="460"/>
+    <line x1="275" y1="402" x2="275" y2="448"/>
+    <line x1="290" y1="395" x2="290" y2="455"/>
+    <line x1="305" y1="408" x2="305" y2="442"/>
+    <line x1="320" y1="400" x2="320" y2="450"/>
+    <line x1="335" y1="410" x2="335" y2="440"/>
+    <line x1="350" y1="405" x2="350" y2="445"/>
+    <line x1="365" y1="412" x2="365" y2="438"/>
+    <line x1="380" y1="420" x2="380" y2="430"/>
+  </g>
 </svg>
