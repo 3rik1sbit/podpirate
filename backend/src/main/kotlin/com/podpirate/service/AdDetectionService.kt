@@ -33,9 +33,11 @@ class AdDetectionService(
         try {
             detectAds(episodeId)
         } catch (e: Exception) {
-            log.error("Failed to detect ads for episode $episodeId", e)
-            val episode = episodeRepository.findById(episodeId).orElseThrow()
-            episodeRepository.save(episode.copy(status = EpisodeStatus.ERROR))
+            log.error("Failed to detect ads for episode $episodeId, skipping ad detection", e)
+            // Don't block the pipeline — skip ad detection and proceed to audio processing
+            adSegmentRepository.deleteByEpisodeId(episodeId)
+            log.info("Skipped ad detection for episode $episodeId, proceeding to audio processing")
+            audioProcessingService.processAsync(episodeId)
         }
     }
 
@@ -80,7 +82,7 @@ $transcript"""
             .bodyValue(ollamaRequest)
             .retrieve()
             .bodyToMono(JsonNode::class.java)
-            .block(Duration.ofMinutes(5))
+            .block(Duration.ofMinutes(10))
 
         val responseText = response?.get("response")?.asText() ?: "[]"
 
