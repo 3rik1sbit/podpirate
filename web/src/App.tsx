@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom';
 import SearchPage from './pages/SearchPage';
 import SubscriptionsPage from './pages/SubscriptionsPage';
 import FeedPage from './pages/FeedPage';
@@ -12,7 +12,7 @@ function Nav() {
 
   return (
     <nav className="bg-gray-800 border-b border-gray-700 px-4 sm:px-6 py-3 flex items-center gap-2 sm:gap-4 overflow-x-auto">
-      <img src="/podpirate/logo.svg" alt="PodPirate" className="w-[60px] h-[60px] shrink-0" />
+      <Link to="/"><img src="/podpirate/logo.svg" alt="PodPirate" className="w-[60px] h-[60px] shrink-0" /></Link>
       <span className="text-xl font-bold text-purple-400 mr-2 sm:mr-6 shrink-0 hidden sm:inline">PodPirate</span>
       <NavLink to="/" className={linkClass}>Feed</NavLink>
       <NavLink to="/search" className={linkClass}>Search</NavLink>
